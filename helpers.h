@@ -1,8 +1,16 @@
 #pragma once
 #include <assert.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define pubool char
+#define pucstr char *
+
+#ifndef cstr
+#define cstr pucstr
+#endif
 
 #if !__bool_true_false_are_defined
 #define true 1
@@ -10,51 +18,44 @@
 #define bool pubool
 #endif
 
-typedef struct {
-  char *items;
-  int length;
-  int capacity;
-} string;
-
-#define da_foreach(xs, name)                                                   \
-  for (typeof((xs)->items) name = (xs)->items;                                 \
-       name < (xs)->items + (xs)->length; name++)
-
-#define da_free(xs)                                                            \
+#define defer_res(v)                                                           \
   do {                                                                         \
-    free((xs)->items);                                                         \
-    (xs)->capacity = 0;                                                        \
-    (xs)->length = 0;                                                          \
+    result = v;                                                                \
+    goto defer;                                                                \
+  } while (0)
+#define errdefer_res(v)                                                        \
+  do {                                                                         \
+    result = v;                                                                \
+    goto errdefer;                                                             \
   } while (0)
 
-#define da_copy_terminate(dest, src)                                           \
+enum LogLevel { LogLevel_Info, LogLevel_Error };
+void log_write(enum LogLevel log_level, cstr file, int line, cstr message) {
+  switch (log_level) {
+  case LogLevel_Info:
+    fprintf(stdout, "[INFO] %s:%d: %s\n", file, line, message);
+    break;
+  case LogLevel_Error:
+    fprintf(stderr, "[ERROR] %s:%d: %s\n", file, line, message);
+    break;
+  }
+}
+#define log_error(LOG_LEVEL, msg)                                              \
+  log_write(LogLevel_Error, __FILE__, __LINE__, msg)
+#define log_info(LOG_LEVEL, msg)                                               \
+  log_write(LogLevel_Info, __FILE__, __LINE__, msg)
+
+#define unreachable(message)                                                   \
   do {                                                                         \
-    (dest) = (typeof((src)->items))calloc(((src)->length + 1),                 \
-                                          sizeof(*(src)->items));              \
-    memcpy((dest), (src)->items, sizeof(*(src)->items) * ((src)->length));     \
+    log_error(message);                                                        \
+    abort();                                                                   \
+  } while (0)
+#define todo(message)                                                          \
+  do {                                                                         \
+    log_info(message);                                                         \
+    abort();                                                                   \
   } while (0)
 
-#define da_copy(dest, src)                                                     \
-  do {                                                                         \
-    (dest) =                                                                   \
-        (typeof((src)->items))calloc(((src)->length), sizeof(*(src)->items));  \
-    memcpy((dest), (src)->items, sizeof(*(src)->items) * ((src)->length));     \
-  } while (0)
-
-#define da_append(xs, x)                                                       \
-  do {                                                                         \
-    if ((xs)->length == (xs)->capacity) {                                      \
-      if ((xs)->capacity == 0)                                                 \
-        (xs)->capacity = 16;                                                   \
-      else                                                                     \
-        (xs)->capacity *= 2;                                                   \
-    }                                                                          \
-    (xs)->items = (typeof((xs)->items))realloc(                                \
-        (xs)->items, (xs)->capacity * sizeof(*(xs)->items));                   \
-    (xs)->items[(xs)->length++] = (x);                                         \
-  } while (0)
-
-#define unreachable assert(0)
 #define len(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
 #define ll_append(xs, x, nullness_check)                                       \
@@ -76,11 +77,11 @@ typedef struct {
     typeof((xs)) temp = xs;                                                    \
     typeof((xs)) prev = NULL;                                                  \
     while ((xs)->next != NULL) {                                               \
-      for (temp = (xs); temp->next != NULL; temp = temp->next) {    \
+      for (temp = (xs); temp->next != NULL; temp = temp->next) {               \
         prev = temp;                                                           \
       }                                                                        \
       prev->next = NULL;                                                       \
-        free(temp);                                                            \
+      free(temp);                                                              \
     }                                                                          \
   } while (0)
 
