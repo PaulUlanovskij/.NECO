@@ -134,10 +134,38 @@ bool sb_append_file(StringBuilder *sb, char *path) {
   if (ferror(file)) {
     defer_res(false);
   }
+
   sb->length = new_length;
 defer:
   fclose(file);
   return result;
+}
+
+inline StringView sv_from_sb(StringBuilder sb){
+  return (StringView){.items = sb.items, .length = sb.length};
+}
+inline StringView sv_from_sb_owned(StringBuilder sb){
+  cstr copy = (cstr)malloc(sb.length);
+  memcpy(copy, sb.items, sb.length);
+  return (StringView){.items = copy, .length = sb.length};
+}
+
+
+StringView sv_from_sv_until_delim(StringView sv, char delim){
+  StringView res ={};
+  res.items = sv.items;
+  for(char* c = sv.items; *c != delim; c++){
+    res.length++;
+  }
+  return res;
+}
+
+inline StringView sv_from_sb_until_delim(StringBuilder sb, char delim){
+  return sv_from_sv_until_delim(sv_from_sb(sb), delim);
+}
+
+inline StringView sv_from_sb_until_delim_owned(StringBuilder sb, char delim){
+  return sv_from_sv_until_delim(sv_from_sb_owned(sb), delim);
 }
 
 bool fexists(cstr path) {
