@@ -40,9 +40,9 @@ void log_write(enum LogLevel log_level, cstr file, int line, cstr message) {
     break;
   }
 }
-#define log_error(LOG_LEVEL, msg)                                              \
+#define log_error(msg)                                              \
   log_write(LogLevel_Error, __FILE__, __LINE__, msg)
-#define log_info(LOG_LEVEL, msg)                                               \
+#define log_info(msg)                                               \
   log_write(LogLevel_Info, __FILE__, __LINE__, msg)
 
 #define unreachable(message)                                                   \

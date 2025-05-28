@@ -1,5 +1,10 @@
 #include "da.h"
 #include "helpers.h"
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 typedef struct {
@@ -27,6 +32,20 @@ bool sv_from_file(StringView *sv, char *path);
 
 void sb_clear(StringBuilder *sb);
 
+StringView sv_from_sb(StringBuilder sb);
+StringView sv_from_sb_owned(StringBuilder sb);
+
+StringView sv_from_sv_until_delim(StringView sv, char delim);
+StringView sv_from_sb_until_delim(StringBuilder sb, char delim);
+StringView sv_from_sb_until_delim_owned(StringBuilder sb, char delim);
+
+StringView sv_from_sv_until_word(StringView sv, cstr delim);
+StringView sv_from_sb_until_word(StringBuilder sb, cstr delim);
+StringView sv_from_sb_until_word_owned(StringBuilder sb, cstr delim);
+
+int sv_get_char_index(StringView sv, char c);
+int sv_get_word_index(StringView sv, cstr delim);
+
 bool fexists(cstr path);
 int flength(FILE *file);
 
@@ -34,7 +53,7 @@ void fwrite_string(char *str, FILE *file);
 pubool fread_string(cstr *str, FILE *file);
 
 #define define_fwrite(primitive)                                               \
-  void fwrite_##primitive(primitive *value_ref, FILE *file) {    \
+  void fwrite_##primitive(primitive *value_ref, FILE *file) {                  \
     fwrite(value_ref, sizeof(primitive), 1, file);                             \
   }
 
@@ -46,7 +65,7 @@ define_fwrite(float);
 define_fwrite(double);
 
 #define define_fread(primitive)                                                \
-  pubool fread_##primitive(primitive *dest, FILE *file) {        \
+  pubool fread_##primitive(primitive *dest, FILE *file) {                      \
     return fread(dest, sizeof(primitive), 1, file) == 1;                       \
   }
 
@@ -141,31 +160,38 @@ defer:
   return result;
 }
 
-inline StringView sv_from_sb(StringBuilder sb){
+StringView sv_from_sb(StringBuilder sb) {
   return (StringView){.items = sb.items, .length = sb.length};
 }
-inline StringView sv_from_sb_owned(StringBuilder sb){
+StringView sv_from_sb_owned(StringBuilder sb) {
   cstr copy = (cstr)malloc(sb.length);
   memcpy(copy, sb.items, sb.length);
   return (StringView){.items = copy, .length = sb.length};
 }
 
-
-StringView sv_from_sv_until_delim(StringView sv, char delim){
-  StringView res ={};
-  res.items = sv.items;
-  for(char* c = sv.items; *c != delim; c++){
-    res.length++;
-  }
-  return res;
+StringView sv_from_sv_until_delim(StringView sv, char delim) {
+  return (StringView){.items = sv.items,
+                      .length = sv_get_char_index(sv, delim)};
 }
-
-inline StringView sv_from_sb_until_delim(StringBuilder sb, char delim){
+StringView sv_from_sb_until_delim(StringBuilder sb, char delim) {
   return sv_from_sv_until_delim(sv_from_sb(sb), delim);
 }
 
-inline StringView sv_from_sb_until_delim_owned(StringBuilder sb, char delim){
+StringView sv_from_sb_until_delim_owned(StringBuilder sb, char delim) {
   return sv_from_sv_until_delim(sv_from_sb_owned(sb), delim);
+}
+
+StringView sv_from_sv_until_word(StringView sv, cstr delim) {
+  return (StringView){.items = sv.items,
+                      .length = sv_get_word_index(sv, delim)};
+}
+
+StringView sv_from_sb_until_word(StringBuilder sb, cstr delim) {
+  return sv_from_sv_until_word(sv_from_sb(sb), delim);
+}
+
+StringView sv_from_sb_until_word_owned(StringBuilder sb, cstr delim) {
+  return sv_from_sv_until_word(sv_from_sb_owned(sb), delim);
 }
 
 bool fexists(cstr path) {
@@ -205,4 +231,62 @@ pubool fread_string(cstr *str, FILE *file) {
   da_copy(*str, temp);
   da_free(temp);
   return true;
+}
+
+int sv_get_char_index(StringView sv, char c) {
+#define ONES ((size_t)-1/UCHAR_MAX)
+#define HIGHS (ONES * (UCHAR_MAX/2+1))
+#define HASZERO(x) ((x)-ONES & ~(x) & HIGHS)
+  int i = 0;
+  while ((uintptr_t)(sv.items+i) % sizeof(size_t)){
+    if (i >= sv.length){
+      return -1;
+    }
+    if (sv.items[i] == c){
+      return i;
+    }
+    i++;
+  }
+
+  size_t pattern = ONES * (unsigned char)c;
+  size_t *word_ptr = (size_t *)(sv.items + i);
+
+  while (i + sizeof(size_t) < sv.length) {
+    if(HASZERO(*word_ptr ^ pattern)){
+      break;
+    }
+    i += sizeof(size_t);
+    word_ptr++;
+  }
+
+  while (i < sv.length) {
+    if (sv.items[i] == c){
+      return i;
+    }
+    i++;
+  }
+  return -1;
+#undef ONES
+#undef HIGHS
+#undef HASZERO
+}
+
+int sv_get_word_index(StringView sv, cstr delim) {
+  int delim_length = strlen(delim);
+  int i = 0;
+  StringView temp = sv;
+  temp.length-=(delim_length-1);
+  while(i < sv.length-delim_length){
+    int j = sv_get_char_index(temp, delim[0]);
+    if(j < 0)
+      return -1;
+    if(strncmp(temp.items + j, delim, delim_length) == 0){
+      return i+j;
+    }
+    j++;
+    i+=j;
+    temp.length -=j;
+    temp.items +=j;
+  }
+  return -1;
 }
