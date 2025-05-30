@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+// SBV_DECLARATION
+
 typedef struct {
   char *items;
   int length;
@@ -18,111 +20,109 @@ typedef struct {
   int capacity;
 } StringBuilder;
 
-StringView sb_to_sv(StringBuilder sb);
+StringView sv_from_sb(StringBuilder sb);
 StringBuilder sb_from_sv(StringView sv);
 
-void sb_append(StringBuilder *sb, char c);
+StringView sv_copy(StringView sv);
 
+StringView sv_from(StringView sv, int index);
+StringView sv_upto(StringView sv, int index);
+
+void sb_clear(StringBuilder *sb);
+
+void sb_append(StringBuilder *sb, char c);
+void sb_append_buf(StringBuilder *sb, char *buf, int buf_length);
 void sb_append_cstr(StringBuilder *sb, cstr str);
 void sb_append_sv(StringBuilder *sb, StringView sv);
 void sb_append_sb(StringBuilder *sb, StringBuilder sb2);
 
-bool sb_append_file(StringBuilder *sb, char *path);
 bool sv_from_file(StringView *sv, char *path);
-
-void sb_clear(StringBuilder *sb);
-
-StringView sv_from_sb(StringBuilder sb);
-StringView sv_from_sb_owned(StringBuilder sb);
-
-StringView sv_from_sv_until_delim(StringView sv, char delim);
-StringView sv_from_sb_until_delim(StringBuilder sb, char delim);
-StringView sv_from_sb_until_delim_owned(StringBuilder sb, char delim);
-
-StringView sv_from_sv_until_word(StringView sv, cstr delim);
-StringView sv_from_sb_until_word(StringBuilder sb, cstr delim);
-StringView sv_from_sb_until_word_owned(StringBuilder sb, cstr delim);
+bool sb_append_file(StringBuilder *sb, char *path);
 
 int sv_get_char_index(StringView sv, char c);
-int sv_get_first_from_group_index(StringView sv, cstr str);
+int sv_get_first_char_index(StringView sv, cstr str);
 int sv_get_word_index(StringView sv, cstr delim);
+int sv_get_first_word_index(StringView sv, cstr *delim, int count);
+
+// END SBV_DECLARATION
+
+// FIO_DECLARATION
 
 bool fexists(cstr path);
 int flength(FILE *file);
 
+void fwrite_sv(StringView sv, FILE *file);
+void fwrite_sb(StringBuilder sb, FILE *file);
 void fwrite_string(char *str, FILE *file);
+
 pubool fread_string(cstr *str, FILE *file);
 
-#define define_fwrite(primitive)                                               \
-  void fwrite_##primitive(primitive *value_ref, FILE *file) {                  \
-    fwrite(value_ref, sizeof(primitive), 1, file);                             \
-  }
+#define fwrite_val(value, file) fwrite(value, sizeof(*value), 1, file)
+#define fread_val(value, file) fread(value, sizeof(*value), 1, file)
 
-define_fwrite(char);
-define_fwrite(short);
-define_fwrite(int);
-define_fwrite(long);
-define_fwrite(float);
-define_fwrite(double);
+// END FIO_DECLARATION
 
-#define define_fread(primitive)                                                \
-  pubool fread_##primitive(primitive *dest, FILE *file) {                      \
-    return fread(dest, sizeof(primitive), 1, file) == 1;                       \
-  }
+// SBV_IMPLEMENTATION
 
-define_fread(char);
-define_fread(short);
-define_fread(int);
-define_fread(long);
-define_fread(float);
-define_fread(double);
-
-StringView sb_to_sv(StringBuilder sb) {
-  StringView sv = {};
-  sv.items = (char *)malloc(sb.length);
-  memcpy(sv.items, sb.items, sb.length);
-  sv.length = sb.length;
-  return sv;
+StringView sv_from_sb(StringBuilder sb) {
+  return (StringView){
+      .items = sb.items,
+      .length = sb.length,
+  };
 }
+StringBuilder sb_from_sv(StringView sv) {
+  return (StringBuilder){
+      .items = sv.items,
+      .length = sv.length,
+      .capacity = sv.length,
+  };
+}
+
+StringView sv_copy(StringView sv) {
+  return (StringView){
+      .items = (char *)malloc_copy(sv.length, sv.items),
+      .length = sv.length,
+  };
+}
+
+StringView sv_from(StringView sv, int index) {
+  return (StringView){
+      .items = sv.items + index,
+      .length = sv.length - index,
+  };
+}
+StringView sv_upto(StringView sv, int index) {
+  return (StringView){
+      .items = sv.items,
+      .length = index,
+  };
+}
+
 void sb_clear(StringBuilder *sb) {
   free(sb->items);
   sb->capacity = 0;
   sb->length = 0;
 }
 void sb_append(StringBuilder *sb, char c) {
-  if (sb->length == sb->capacity) {
-    if (sb->capacity == 0) {
-      sb->capacity = 256;
-      sb->length = 1;
-    } else {
-      sb->capacity *= 2;
-    }
-  }
-  sb->items = (char *)realloc(sb->items, sb->capacity);
   sb->items[sb->length - 1] = c;
-  sb->items[sb->length] = '\0';
-  sb->length++;
+  da_append(sb, '\0');
 }
 
-StringBuilder sb_from_sv(StringView sv) {
-  return (StringBuilder){sv.items, sv.length, sv.length};
+void sb_append_buf(StringBuilder *sb, char *buf, int buf_length) {
+  da_reserve(sb, sb->length + buf_length);
+  memcpy(sb->items + sb->length - 1, buf, buf_length);
+  sb->items[sb->length - 1] = '\0';
 }
-
 void sb_append_cstr(StringBuilder *sb, cstr str) {
-  for (char *c = str; *c != '\0'; c++) {
-    sb_append(sb, *c);
-  }
+  sb_append_buf(sb, str, strlen(str));
 }
 void sb_append_sv(StringBuilder *sb, StringView sv) {
-  for (int i = 0; i < sv.length; i++) {
-    sb_append(sb, sv.items[i]);
-  }
+  sb_append_buf(sb, sv.items, sv.length);
 }
 void sb_append_sb(StringBuilder *sb, StringBuilder sb2) {
-  for (int i = 0; i < sb2.length; i++) {
-    sb_append(sb, sb2.items[i]);
-  }
+  sb_append_buf(sb, sb2.items, sb2.length);
 }
+
 bool sv_from_file(StringView *sv, char *path) {
   bool result = true;
   FILE *file = fopen(path, "rb");
@@ -159,79 +159,6 @@ bool sb_append_file(StringBuilder *sb, char *path) {
 defer:
   fclose(file);
   return result;
-}
-
-StringView sv_from_sb(StringBuilder sb) {
-  return (StringView){.items = sb.items, .length = sb.length};
-}
-StringView sv_from_sb_owned(StringBuilder sb) {
-  cstr copy = (cstr)malloc(sb.length);
-  memcpy(copy, sb.items, sb.length);
-  return (StringView){.items = copy, .length = sb.length};
-}
-
-StringView sv_from_sv_until_delim(StringView sv, char delim) {
-  return (StringView){.items = sv.items,
-                      .length = sv_get_char_index(sv, delim)};
-}
-StringView sv_from_sb_until_delim(StringBuilder sb, char delim) {
-  return sv_from_sv_until_delim(sv_from_sb(sb), delim);
-}
-
-StringView sv_from_sb_until_delim_owned(StringBuilder sb, char delim) {
-  return sv_from_sv_until_delim(sv_from_sb_owned(sb), delim);
-}
-
-StringView sv_from_sv_until_word(StringView sv, cstr delim) {
-  return (StringView){.items = sv.items,
-                      .length = sv_get_word_index(sv, delim)};
-}
-
-StringView sv_from_sb_until_word(StringBuilder sb, cstr delim) {
-  return sv_from_sv_until_word(sv_from_sb(sb), delim);
-}
-
-StringView sv_from_sb_until_word_owned(StringBuilder sb, cstr delim) {
-  return sv_from_sv_until_word(sv_from_sb_owned(sb), delim);
-}
-
-bool fexists(cstr path) {
-  FILE *file = fopen(path, "rb");
-  if (file == NULL) {
-    return false;
-  }
-  fclose(file);
-  return true;
-}
-// For files opened in binary format only
-int flength(FILE *file) {
-  if (file == NULL)
-    return -1;
-  int pos = ftell(file);
-  if (pos < 0 || fseek(file, 0, SEEK_END) < 0)
-    return -1;
-  long length = ftell(file);
-  if (length < 0 || fseek(file, pos, SEEK_SET) < 0)
-    return -1;
-  return length;
-}
-
-void fwrite_string(char *str, FILE *file) {
-  fwrite(str, sizeof(char), strlen(str) + 1, file);
-}
-
-pubool fread_string(cstr *str, FILE *file) {
-  StringBuilder line = {};
-  StringBuilder *temp = &line;
-  char c = 0;
-  do {
-    if (fread_char(&c, file) == false)
-      return false;
-    da_append(temp, c);
-  } while (c != '\0');
-  da_copy(*str, temp);
-  da_free(temp);
-  return true;
 }
 
 int sv_get_char_index(StringView sv, char c) {
@@ -272,7 +199,7 @@ int sv_get_char_index(StringView sv, char c) {
 #undef HASZERO
 }
 
-int sv_get_first_from_group_index(StringView sv, cstr str) {
+int sv_get_first_char_index(StringView sv, cstr str) {
 #define ONES ((size_t)-1 / UCHAR_MAX)
 #define HIGHS (ONES * (UCHAR_MAX / 2 + 1))
 #define HASZERO(x) ((x) - ONES & ~(x) & HIGHS)
@@ -323,8 +250,9 @@ int sv_get_word_index(StringView sv, cstr delim) {
   temp.length -= (delim_length - 1);
   while (i < sv.length - delim_length) {
     int j = sv_get_char_index(temp, delim[0]);
-    if (j < 0)
+    if (j < 0) {
       return -1;
+    }
     if (strncmp(temp.items + j, delim, delim_length) == 0) {
       return i + j;
     }
@@ -335,3 +263,94 @@ int sv_get_word_index(StringView sv, cstr delim) {
   }
   return -1;
 }
+int sv_get_first_word_index(StringView sv, cstr *delim, int count) {
+  int *delim_lengths = (int *)malloc(sizeof(int) * count);
+  char *heads = (char *)malloc(count);
+  for (int i = 0; i < count; i++) {
+    heads[i] = delim[i][0];
+    delim_lengths[i] = strlen(delim[i]);
+  }
+  int result = 0;
+  StringView temp = sv;
+  bool matched = true;
+  while (matched) {
+    matched = false;
+    int j = sv_get_first_char_index(temp, heads);
+    if (j < 0) {
+      defer_res(-1);
+    }
+    for (int k = 0; k < count; k++) {
+      if (j > sv.length - (delim_lengths[k] - 1)) {
+        continue;
+      }
+      if (result < sv.length - delim_lengths[k]) {
+        continue;
+      }
+      matched = true;
+      if (strncmp(temp.items + j, delim[k], delim_lengths[k]) == 0) {
+        defer_res(result + j);
+      }
+    }
+    j++;
+    result += j;
+    temp.length -= j;
+    temp.items += j;
+  }
+defer:
+  free(heads);
+  free(delim_lengths);
+  return result;
+}
+
+// END SBV_IMPLEMENTATION
+
+// FIO_IMPLEMENTATION
+
+bool fexists(cstr path) {
+  FILE *file = fopen(path, "rb");
+  if (file == NULL) {
+    return false;
+  }
+  fclose(file);
+  return true;
+}
+
+// For files opened in binary format only
+int flength(FILE *file) {
+  if (file == NULL)
+    return -1;
+  int pos = ftell(file);
+  if (pos < 0 || fseek(file, 0, SEEK_END) < 0)
+    return -1;
+  long length = ftell(file);
+  if (length < 0 || fseek(file, pos, SEEK_SET) < 0)
+    return -1;
+  return length;
+}
+
+void fwrite_sv(StringView sv, FILE *file) {
+  fwrite(sv.items, sizeof(char), sv.length, file);
+}
+
+void fwrite_sb(StringBuilder sb, FILE *file) {
+  fwrite(sb.items, sizeof(char), sb.length, file);
+}
+
+void fwrite_string(char *str, FILE *file) {
+  fwrite(str, sizeof(char), strlen(str) + 1, file);
+}
+
+pubool fread_string(cstr *str, FILE *file) {
+  StringBuilder line = {};
+  char c = 0;
+  do {
+    if (fread_val(&c, file) == false)
+      return false;
+    da_append(&line, c);
+  } while (c != '\0');
+  da_copy_items(*str, &line);
+  da_free(&line);
+  return true;
+}
+
+// END FIO_IMPLEMENTATION

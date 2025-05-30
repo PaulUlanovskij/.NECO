@@ -32,11 +32,17 @@
     (xs)->length++;                                                            \
   } while (0)
 
-#define da_copy(dest, src)                                                     \
+#define da_copy_items(dest, src)                                               \
   do {                                                                         \
     (dest) =                                                                   \
         (typeof((src)->items))calloc(((src)->length), sizeof(*(src)->items));  \
     memcpy((dest), (src)->items, sizeof(*(src)->items) * ((src)->length));     \
+  } while (0)
+
+#define da_copy(dest, src)                                                     \
+  do {                                                                         \
+    da_copy_items((dest)->items, (src));                                       \
+    (dest)->length = (src)->length;                                            \
   } while (0)
 
 #define da_append(xs, x)                                                       \

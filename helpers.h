@@ -57,6 +57,11 @@ void log_write(enum LogLevel log_level, cstr file, int line, cstr message) {
   } while (0)
 
 #define len(arr) (sizeof((arr)) / sizeof((arr)[0]))
+void* malloc_copy(int size, void* src){
+  void* cpy = malloc(size);
+  memcpy(cpy, src, size);
+  return cpy;
+}
 
 #define ll_append(xs, x, nullness_check)                                       \
   do {                                                                         \
