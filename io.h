@@ -1,11 +1,11 @@
 #include "da.h"
 #include "helpers.h"
-#include <stdio.h>
-#include <string.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct {
   char *items;
@@ -44,6 +44,7 @@ StringView sv_from_sb_until_word(StringBuilder sb, cstr delim);
 StringView sv_from_sb_until_word_owned(StringBuilder sb, cstr delim);
 
 int sv_get_char_index(StringView sv, char c);
+int sv_get_first_from_group_index(StringView sv, cstr str);
 int sv_get_word_index(StringView sv, cstr delim);
 
 bool fexists(cstr path);
@@ -96,11 +97,11 @@ void sb_append(StringBuilder *sb, char c) {
     } else {
       sb->capacity *= 2;
     }
-    sb->items = (char *)realloc(sb->items, sb->capacity);
-    sb->items[sb->length - 1] = c;
-    sb->items[sb->length] = '\0';
-    sb->length++;
   }
+  sb->items = (char *)realloc(sb->items, sb->capacity);
+  sb->items[sb->length - 1] = c;
+  sb->items[sb->length] = '\0';
+  sb->length++;
 }
 
 StringBuilder sb_from_sv(StringView sv) {
@@ -234,15 +235,15 @@ pubool fread_string(cstr *str, FILE *file) {
 }
 
 int sv_get_char_index(StringView sv, char c) {
-#define ONES ((size_t)-1/UCHAR_MAX)
-#define HIGHS (ONES * (UCHAR_MAX/2+1))
-#define HASZERO(x) ((x)-ONES & ~(x) & HIGHS)
+#define ONES ((size_t)-1 / UCHAR_MAX)
+#define HIGHS (ONES * (UCHAR_MAX / 2 + 1))
+#define HASZERO(x) ((x) - ONES & ~(x) & HIGHS)
   int i = 0;
-  while ((uintptr_t)(sv.items+i) % sizeof(size_t)){
-    if (i >= sv.length){
+  while ((uintptr_t)(sv.items + i) % sizeof(size_t)) {
+    if (i >= sv.length) {
       return -1;
     }
-    if (sv.items[i] == c){
+    if (sv.items[i] == c) {
       return i;
     }
     i++;
@@ -252,7 +253,7 @@ int sv_get_char_index(StringView sv, char c) {
   size_t *word_ptr = (size_t *)(sv.items + i);
 
   while (i + sizeof(size_t) < sv.length) {
-    if(HASZERO(*word_ptr ^ pattern)){
+    if (HASZERO(*word_ptr ^ pattern)) {
       break;
     }
     i += sizeof(size_t);
@@ -260,7 +261,51 @@ int sv_get_char_index(StringView sv, char c) {
   }
 
   while (i < sv.length) {
-    if (sv.items[i] == c){
+    if (sv.items[i] == c) {
+      return i;
+    }
+    i++;
+  }
+  return -1;
+#undef ONES
+#undef HIGHS
+#undef HASZERO
+}
+
+int sv_get_first_from_group_index(StringView sv, cstr str) {
+#define ONES ((size_t)-1 / UCHAR_MAX)
+#define HIGHS (ONES * (UCHAR_MAX / 2 + 1))
+#define HASZERO(x) ((x) - ONES & ~(x) & HIGHS)
+  int i = 0;
+  while ((uintptr_t)(sv.items + i) % sizeof(size_t)) {
+    if (i >= sv.length) {
+      return -1;
+    }
+    if (strchr(str, sv.items[i]) != NULL) {
+      return i;
+    }
+    i++;
+  }
+
+  int pattern_count = strlen(str);
+  size_t *patterns = (size_t *)malloc(pattern_count * sizeof(size_t));
+  for (int j = 0; j < pattern_count; j++) {
+    patterns[j] = ONES * (unsigned char)str[j];
+  }
+  size_t *word_ptr = (size_t *)(sv.items + i);
+
+  while (i + sizeof(size_t) < sv.length) {
+    for (int j = 0; j < pattern_count; j++) {
+      if (HASZERO(*word_ptr ^ patterns[j])) {
+        goto seek_single;
+      }
+    }
+    i += sizeof(size_t);
+    word_ptr++;
+  }
+seek_single:
+  while (i < sv.length) {
+    if (strchr(str, sv.items[i]) != NULL) {
       return i;
     }
     i++;
@@ -275,18 +320,18 @@ int sv_get_word_index(StringView sv, cstr delim) {
   int delim_length = strlen(delim);
   int i = 0;
   StringView temp = sv;
-  temp.length-=(delim_length-1);
-  while(i < sv.length-delim_length){
+  temp.length -= (delim_length - 1);
+  while (i < sv.length - delim_length) {
     int j = sv_get_char_index(temp, delim[0]);
-    if(j < 0)
+    if (j < 0)
       return -1;
-    if(strncmp(temp.items + j, delim, delim_length) == 0){
-      return i+j;
+    if (strncmp(temp.items + j, delim, delim_length) == 0) {
+      return i + j;
     }
     j++;
-    i+=j;
-    temp.length -=j;
-    temp.items +=j;
+    i += j;
+    temp.length -= j;
+    temp.items += j;
   }
   return -1;
 }
