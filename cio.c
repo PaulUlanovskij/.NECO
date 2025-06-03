@@ -1,16 +1,17 @@
-#include "headers/types.h"
+#include "headers/da.h"
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #ifndef _WIN32
 #include <sys/wait.h>
 #include <unistd.h>
 #else
-  //TODO: add windows support
+// TODO: add windows support
 #endif
 
 #include "headers/pulib.h"
@@ -20,31 +21,31 @@ void cmd_append_many(Cmd *cmd, ...) {
   va_start(vl, cmd);
   cstr arg = NULL;
   while ((arg = va_arg(vl, cstr)) != NULL) {
-    if(cmd->exec_file != NULL){
-      if (cmd->sb.length > 0) {
-      sb_append(&cmd->sb, ' ');
-    }
-    sb_append_cstr_quoted(&cmd->sb, arg);
-    } else {
-      sb_append_cstr_quoted(&cmd->sb, arg);
-      cmd->exec_file = cstr_from_sb(&cmd->sb);
-      da_free(&cmd->sb);
-    }
+    cstr_o quoted = cstr_quote_copy(arg);
+    da_append(cmd, quoted);
   }
   va_end(vl);
 }
 void cmd_free(Cmd *cmd) {
-  da_free(&cmd->sb);
-  free(cmd->exec_file);
+  da_foreach(cmd, i) { free(i); }
+  da_free(cmd);
+}
+void cmd_render(Cmd *cmd) {
+  StringBuilder sb = {};
+  for (int i = 0; i < cmd->length; i++) {
+    sb_append_cstr(&sb, cmd->items[i]);
+    sb_append(&sb, ' ');
+  }
+  printf("%s\n", sb.items);
+  da_free(&sb);
 }
 pid_t cmd_create_child(Cmd *cmd) {
-  if (cmd->sb.length < 1) {
+  if (cmd->length < 1) {
     log_info("Could not run empty command");
     return INVALID_PID;
   }
-
   log_info("Running command:");
-  log_info(cmd->sb.items);
+  cmd_render(cmd);
 
   pid_t cpid = fork();
   if (cpid < 0) {
@@ -52,15 +53,17 @@ pid_t cmd_create_child(Cmd *cmd) {
     return INVALID_PID;
   }
 
+  da_append(cmd, NULL);
+
   if (cpid == 0) {
-    cstr args[3] = {cmd->exec_file, cmd->sb.items, NULL};
-    if (execvp(cmd->exec_file, args) < 0) {
+    if (execvp(cmd->items[0], cmd->items) < 0) {
       log_error("Could not exec child process");
       exit(1);
     }
     panic("cmd_run. Something went horribly wrong.");
   }
-  cmd_free(cmd);
+  cmd->length = 0;
+  cmd->capacity = 0;
   return cpid;
 }
 int pid_get_exitcode(pid_t cpid) {

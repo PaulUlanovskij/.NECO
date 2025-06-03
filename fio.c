@@ -1,3 +1,5 @@
+#include "headers/str.h"
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +12,31 @@
 #endif
 
 #include "headers/pulib.h"
+
+#define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
+cstr_o path_join_many(void *nil, ...) {
+  cstr_o joined_path = NULL;
+  StringBuilder sb = {};
+
+  va_list vl;
+  va_start(vl, nil);
+  cstr arg = NULL;
+  while ((arg = va_arg(vl, cstr)) != NULL) {
+    if (sb.length == 0) {
+      sb_append_cstr(&sb, arg);
+    } else {
+      if (cstr_starts_with(arg, "/") && cstr_ends_with(sb.items, "/")){
+        sb_append_cstr(&sb, arg + 1);
+      }else{
+        sb_append_cstr(&sb, arg);
+      }
+    }
+  }
+
+  va_end(vl);
+
+  return joined_path;
+}
 
 DirEntry_da dir_get_all_items(DIR *dir) {
   DirEntry_da entries = {};

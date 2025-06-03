@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "headers/pulib.h"
+#include "headers/types.h"
 
 cstr_o cstr_from_sb(StringBuilder *sb) {
   cstr str = NULL;
@@ -48,6 +49,34 @@ char cstr_starts_with(cstr haystack, cstr needle) {
     return false;
   }
   return strncmp(haystack, needle, needle_length) == 0;
+}
+
+cstr_o cstr_quote_copy(cstr arg) {
+  char *pos = NULL;
+  StringBuilder sb = {};
+  if (strpbrk(arg, " \t\n\v\r\"") == NULL) {
+    return cstr_copy(arg);
+  }
+
+  sb_append(&sb, '\"');
+  pos = strpbrk(arg, "\\\"");
+  uintptr_t index = 0;
+  while (pos != NULL) {
+    index = pos - arg;
+
+    sb_append_sv(&sb, sv_from_cstr(arg, 0, index));
+    sb_append(&sb, '\\');
+    sb_append(&sb, arg[index]);
+
+    arg = arg + index + 1;
+    pos = strpbrk(arg, "\\\"");
+  }
+  sb_append(&sb, '\"');
+
+  cstr res = cstr_from_sb(&sb);
+  da_free(&sb);
+
+  return res;
 }
 
 StringView sv_from_sb(StringBuilder sb) {
@@ -101,7 +130,7 @@ void sb_clear(StringBuilder *sb) {
 void sb_append(StringBuilder *sb, char c) {
   if (sb->length == 0) {
     da_reserve(sb, 2);
-    sb->length=1;
+    sb->length = 1;
   }
   sb->items[sb->length - 1] = c;
   do {
@@ -139,27 +168,6 @@ void sb_append_buf(StringBuilder *sb, const char *buf, int buf_length) {
 }
 void sb_append_cstr(StringBuilder *sb, const cstr str) {
   sb_append_buf(sb, str, strlen(str));
-}
-void sb_append_cstr_quoted(StringBuilder *sb, cstr arg) {
-  char *pos = NULL;
-  if (strpbrk(arg, " \t\n\v\r\"") == NULL) {
-    sb_append_cstr(sb, arg);
-    return;
-  }
-  sb_append(sb, '\"');
-  pos = strpbrk(arg, "\\\"");
-  uintptr_t index = 0;
-  while (pos != NULL) {
-    index = pos - arg;
-
-    sb_append_sv(sb, sv_from_cstr(arg, 0, index));
-    sb_append(sb, '\\');
-    sb_append(sb, arg[index]);
-
-    arg = arg + index + 1;
-    pos = strpbrk(arg, "\\\"");
-  }
-  sb_append(sb, '\"');
 }
 void sb_append_sv(StringBuilder *sb, StringView sv) {
   sb_append_buf(sb, sv.items, sv.length);

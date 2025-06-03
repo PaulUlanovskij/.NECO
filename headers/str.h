@@ -16,6 +16,7 @@ StringView sv_from_sb(StringBuilder sb);
 StringBuilder sb_from_sv(StringView sv);
 
 StringView_o sv_copy(StringView sv);
+cstr_o cstr_quote_copy(cstr arg);
 cstr_o sv_copy_to_cstr(StringView sv);
 
 StringView sv_from(StringView sv, int index);
@@ -26,7 +27,6 @@ void sb_clear(StringBuilder *sb);
 void sb_append(StringBuilder *sb, char c);
 void sb_append_buf(StringBuilder *sb, const char *buf, int buf_length);
 void sb_append_cstr(StringBuilder *sb, const cstr str);
-void sb_append_cstr_quoted(StringBuilder *sb, cstr arg);
 void sb_append_sv(StringBuilder *sb, StringView sv);
 void sb_append_sb(StringBuilder *sb, StringBuilder sb2);
 
@@ -37,5 +37,3 @@ int sv_get_char_index(StringView sv, char c);
 int sv_get_first_char_index(StringView sv, const cstr str);
 int sv_get_word_index(StringView sv, const cstr delim);
 int sv_get_first_word_index(StringView sv, const cstr const *delim, int count);
-
-

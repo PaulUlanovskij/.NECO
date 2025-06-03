@@ -22,6 +22,9 @@ typedef struct {
   int length;
 } DirEntry_da;
 
+#define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
+cstr_o path_join_many(void *nil, ...);
+
 DirEntry_da dir_get_all_items(DIR *dir);
 
 bool fexists(const cstr path);

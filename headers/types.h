@@ -19,8 +19,15 @@ typedef struct {
 } ArenaAllocator;
 
 typedef struct{
-  StringBuilder sb;
-  cstr exec_file;
+  cstr* items;
+  int length;
+  int capacity;
+}cstr_da;
+
+typedef struct{
+  cstr* items;
+  int length;
+  int capacity;
 }Cmd;
 enum LogLevel {
   LogLevel_Nolog,
