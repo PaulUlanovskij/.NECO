@@ -1,10 +1,12 @@
+#pragma once
+
 #ifndef DA_INIT_CAPACITY
 #define DA_INIT_CAPACITY 16
 #endif // DA_INIT_CAPACITY
 
 #define da_reserve(xs, size)                                                   \
   do {                                                                         \
-    while ((xs)->capacity < size) {                                            \
+    while ((xs)->capacity < (size)) {                                          \
       if ((xs)->capacity == 0)                                                 \
         (xs)->capacity = DA_INIT_CAPACITY;                                     \
       else                                                                     \
@@ -20,7 +22,8 @@
 
 #define da_free(xs)                                                            \
   do {                                                                         \
-    free((xs)->items);                                                         \
+    if ((xs)->items)                                                           \
+      free((xs)->items);                                                       \
     (xs)->capacity = 0;                                                        \
     (xs)->length = 0;                                                          \
   } while (0)
@@ -34,9 +37,9 @@
 
 #define da_copy_items(dest, src)                                               \
   do {                                                                         \
-    (dest) =                                                                   \
+    *(dest) =                                                                  \
         (typeof((src)->items))calloc(((src)->length), sizeof(*(src)->items));  \
-    memcpy((dest), (src)->items, sizeof(*(src)->items) * ((src)->length));     \
+    memcpy(*(dest), (src)->items, sizeof(*(src)->items) * ((src)->length));    \
   } while (0)
 
 #define da_copy(dest, src)                                                     \
