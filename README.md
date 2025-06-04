@@ -6,3 +6,7 @@
 <p>helpers - uncategorized mess;</p>
 <p>mem - ArenaAllocator and a little more;</p>
 <p>str - cstr(char* that is expected to be null- terminated), StringBuilder, StringView, and all the variety of things you might want to do with them. Note: .items of non-empty StringBuilder is a cstr;</p>
+
+
+### Inspired by:
+[nob.h](https://github.com/tsoding/nob.h) by Alexey Kutepov(aka rexim, aka tsoding), and his other works
