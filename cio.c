@@ -31,7 +31,7 @@ void cmd_free(Cmd *cmd) {
   da_free(cmd);
 }
 void cmd_render(Cmd *cmd) {
-  StringBuilder sb = {};
+  SB sb = {};
   for (int i = 0; i < cmd->length; i++) {
     sb_append_cstr(&sb, cmd->items[i]);
     sb_append(&sb, ' ');
@@ -108,7 +108,7 @@ cstr_o cread_line(const cstr prompt, bool ensure_nonempty) {
   }
 
   int c = 0;
-  StringBuilder line = {};
+  SB line = {};
   cstr_o res = NULL;
 
 START_OVER:

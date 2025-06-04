@@ -6,32 +6,19 @@
 #include <dirent.h>
 #include <sys/types.h>
 #else
-
+//TODO: Add windows support
 #endif
-
-typedef struct {
-  ino_t ino;
-  cstr name;
-  unsigned short reclen;
-  unsigned char type;
-} DirEntry;
-
-typedef struct {
-  DirEntry *items;
-  int capacity;
-  int length;
-} DirEntry_da;
 
 #define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
 cstr_o path_join_many(void *nil, ...);
 
-DirEntry_da dir_get_all_items(DIR *dir);
+bool dir_open(cstr path, Dir *dir);
 
 bool fexists(const cstr path);
 int flength(FILE *file);
 
-void fwrite_sv(StringView sv, FILE *file);
-void fwrite_sb(StringBuilder sb, FILE *file);
+void fwrite_sv(SV sv, FILE *file);
+void fwrite_sb(SB sb, FILE *file);
 void fwrite_cstr(const cstr str, FILE *file);
 
 cstr_o fread_cstr(FILE *file);

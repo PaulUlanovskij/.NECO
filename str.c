@@ -7,9 +7,90 @@
 #include <string.h>
 
 #include "headers/pulib.h"
-#include "headers/types.h"
 
-cstr_o cstr_from_sb(StringBuilder *sb) {
+int_da sv_index_char(SV sv, char c) {
+  int_da indices = {};
+  SV temp = sv;
+  int index = sv_get_char_index(sv, c);
+  while (index != -1) {
+    da_append(&indices, temp.items + index - sv.items);
+    temp = sv_from(temp, index + 1);
+    index = sv_get_char_index(temp, c);
+  }
+  return indices;
+}
+int_da sv_index_chars(SV sv, char *chars) {
+  int_da indices = {};
+  SV temp = sv;
+  int index = sv_get_first_char_index(sv, chars);
+  while (index != -1) {
+    da_append(&indices, temp.items + index - sv.items);
+    temp = sv_from(temp, index + 1);
+    index = sv_get_first_char_index(temp, chars);
+  }
+  return indices;
+}
+
+int_da cstr_index_char(const cstr str, char c) {
+  int_da indices = {};
+  cstr temp = str;
+  char *index = strchr(str, c);
+  while (index != NULL) {
+    da_append(&indices, index - str);
+    temp = index + 1;
+    index = strchr(str, c);
+  }
+  return indices;
+}
+int_da cstr_index_chars(const cstr str, char *chars) {
+  int_da indices = {};
+  cstr temp = str;
+  char *index = strpbrk(str, chars);
+  while (index != NULL) {
+    da_append(&indices, index - str);
+    temp = index + 1;
+    index = strpbrk(str, chars);
+  }
+  return indices;
+}
+
+SV_da cstr_split_by_char(const cstr str, char delim) {
+  SV_da splits = {};
+  int_da indices = cstr_index_char(str, delim);
+  for (int i = 0; i < indices.length; i++) {
+    SV split = {};
+    if (i == indices.length - 1) {
+
+      split = (SV){.items = str + indices.items[i],
+                   .length = strlen(str) - indices.items[i]};
+    } else {
+      split = (SV){.items = str + indices.items[i],
+                   .length = indices.items[i + 1] - indices.items[i]};
+    }
+    da_append(&splits, split);
+  }
+  return splits;
+}
+
+SV_da cstr_split_by_chars(const cstr str, char *delim) {
+  SV_da splits = {};
+  int_da indices = cstr_index_chars(str, delim);
+  for (int i = 0; i < indices.length; i++) {
+    SV split = {};
+    if (i == indices.length - 1) {
+
+      split = (SV){.items = str + indices.items[i],
+                   .length = strlen(str) - indices.items[i]};
+    } else {
+      split = (SV){.items = str + indices.items[i],
+                   .length = indices.items[i + 1] - indices.items[i]};
+    }
+    da_append(&splits, split);
+  }
+  return splits;
+}
+
+cstr_o cstr_from_sb(SB *sb) {
   cstr str = NULL;
   da_copy_items(&str, sb);
   return str;
@@ -20,7 +101,7 @@ cstr_o cstr_copy(const cstr str) {
 }
 
 cstr_o cstr_concat_many(void *nil, ...) {
-  StringBuilder sb = {};
+  SB sb = {};
   va_list vl;
   va_start(vl, nil);
   cstr arg = NULL;
@@ -33,7 +114,7 @@ cstr_o cstr_concat_many(void *nil, ...) {
   return str;
 }
 
-char cstr_ends_with(cstr haystack, cstr needle) {
+bool cstr_ends_with(const cstr haystack, const cstr needle) {
   int haystack_length = strlen(haystack);
   int needle_length = strlen(needle);
   if (haystack_length < needle_length) {
@@ -42,7 +123,7 @@ char cstr_ends_with(cstr haystack, cstr needle) {
   return strncmp(haystack + haystack_length - needle_length, needle,
                  needle_length) == 0;
 }
-char cstr_starts_with(cstr haystack, cstr needle) {
+bool cstr_starts_with(const cstr haystack, const cstr needle) {
   int haystack_length = strlen(haystack);
   int needle_length = strlen(needle);
   if (haystack_length < needle_length) {
@@ -53,7 +134,7 @@ char cstr_starts_with(cstr haystack, cstr needle) {
 
 cstr_o cstr_quote_copy(cstr arg) {
   char *pos = NULL;
-  StringBuilder sb = {};
+  SB sb = {};
   if (strpbrk(arg, " \t\n\v\r\"") == NULL) {
     return cstr_copy(arg);
   }
@@ -79,55 +160,55 @@ cstr_o cstr_quote_copy(cstr arg) {
   return res;
 }
 
-StringView sv_from_sb(StringBuilder sb) {
-  return (StringView){
+SV sv_from_sb(SB sb) {
+  return (SV){
       .items = sb.items,
       .length = sb.length,
   };
 }
-StringBuilder sb_from_sv(StringView sv) {
-  return (StringBuilder){
+SB sb_from_sv(SV sv) {
+  return (SB){
       .items = sv.items,
       .length = sv.length,
       .capacity = sv.length,
   };
 }
-StringView sv_from_cstr(const cstr str, int start, int end) {
-  return (StringView){.items = str + start, end - start};
+SV sv_from_cstr(const cstr str, int start, int end) {
+  return (SV){.items = str + start, end - start};
 }
 
-StringView sv_copy(StringView sv) {
-  return (StringView){
+SV sv_copy(SV sv) {
+  return (SV){
       .items = (char *)malloc_copy(sv.length, sv.items),
       .length = sv.length,
   };
 }
 
-cstr_o sv_copy_to_cstr(StringView sv) {
+cstr_o sv_copy_to_cstr(SV sv) {
   cstr_o str = (cstr_o)calloc(1, sv.length + 1);
   memcpy(str, sv.items, sv.length);
   return str;
 }
 
-StringView sv_from(StringView sv, int index) {
-  return (StringView){
+SV sv_from(SV sv, int index) {
+  return (SV){
       .items = sv.items + index,
       .length = sv.length - index,
   };
 }
-StringView sv_upto(StringView sv, int index) {
-  return (StringView){
+SV sv_upto(SV sv, int index) {
+  return (SV){
       .items = sv.items,
       .length = index,
   };
 }
 
-void sb_clear(StringBuilder *sb) {
+void sb_clear(SB *sb) {
   free(sb->items);
   sb->capacity = 0;
   sb->length = 0;
 }
-void sb_append(StringBuilder *sb, char c) {
+void sb_append(SB *sb, char c) {
   if (sb->length == 0) {
     da_reserve(sb, 2);
     sb->length = 1;
@@ -148,7 +229,7 @@ void sb_append(StringBuilder *sb, char c) {
   } while (0);
 }
 
-void sb_append_buf(StringBuilder *sb, const char *buf, int buf_length) {
+void sb_append_buf(SB *sb, const char *buf, int buf_length) {
   if (sb->length == 0) {
     sb->length = 1;
   }
@@ -166,17 +247,13 @@ void sb_append_buf(StringBuilder *sb, const char *buf, int buf_length) {
   sb->length += buf_length;
   sb->items[sb->length - 1] = '\0';
 }
-void sb_append_cstr(StringBuilder *sb, const cstr str) {
+void sb_append_cstr(SB *sb, const cstr str) {
   sb_append_buf(sb, str, strlen(str));
 }
-void sb_append_sv(StringBuilder *sb, StringView sv) {
-  sb_append_buf(sb, sv.items, sv.length);
-}
-void sb_append_sb(StringBuilder *sb, StringBuilder sb2) {
-  sb_append_buf(sb, sb2.items, sb2.length);
-}
+void sb_append_sv(SB *sb, SV sv) { sb_append_buf(sb, sv.items, sv.length); }
+void sb_append_sb(SB *sb, SB sb2) { sb_append_buf(sb, sb2.items, sb2.length); }
 
-bool sv_from_file(StringView *sv, const cstr path) {
+bool sv_from_file(SV *sv, const cstr path) {
   char result = true;
   FILE *file = fopen(path, "rb");
   int m = flength(file);
@@ -194,7 +271,7 @@ defer:
   return result;
 }
 
-bool sb_append_file(StringBuilder *sb, const cstr path) {
+bool sb_append_file(SB *sb, const cstr path) {
   bool result = true;
   FILE *file = fopen(path, "rb");
   int m = flength(file);
@@ -214,7 +291,7 @@ defer:
   return result;
 }
 
-int sv_get_char_index(StringView sv, char c) {
+int sv_get_char_index(SV sv, char c) {
 #define ONES ((size_t)-1 / UCHAR_MAX)
 #define HIGHS (ONES * (UCHAR_MAX / 2 + 1))
 #define HASZERO(x) ((x) - ONES & ~(x) & HIGHS)
@@ -253,7 +330,7 @@ int sv_get_char_index(StringView sv, char c) {
 }
 
 // TODO: consider using strpbrk
-int sv_get_first_char_index(StringView sv, const cstr str) {
+int sv_get_first_char_index(SV sv, const cstr str) {
 #define ONES ((size_t)-1 / UCHAR_MAX)
 #define HIGHS (ONES * (UCHAR_MAX / 2 + 1))
 #define HASZERO(x) ((x) - ONES & ~(x) & HIGHS)
@@ -301,10 +378,10 @@ defer:
 #undef HASZERO
 }
 
-int sv_get_word_index(StringView sv, const cstr delim) {
+int sv_get_word_index(SV sv, const cstr delim) {
   int delim_length = strlen(delim);
   int i = 0;
-  StringView temp = sv;
+  SV temp = sv;
   temp.length -= (delim_length - 1);
   while (i < sv.length - delim_length) {
     int j = sv_get_char_index(temp, delim[0]);
@@ -321,7 +398,7 @@ int sv_get_word_index(StringView sv, const cstr delim) {
   }
   return -1;
 }
-int sv_get_first_word_index(StringView sv, const cstr const *delim, int count) {
+int sv_get_first_word_index(SV sv, const cstr const *delim, int count) {
   int *delim_lengths = (int *)malloc(sizeof(int) * count);
   char *heads = (char *)malloc(count);
   for (int i = 0; i < count; i++) {
@@ -329,7 +406,7 @@ int sv_get_first_word_index(StringView sv, const cstr const *delim, int count) {
     delim_lengths[i] = strlen(delim[i]);
   }
   int result = 0;
-  StringView temp = sv;
+  SV temp = sv;
   char matched = true;
   while (matched) {
     matched = false;
