@@ -1,3 +1,4 @@
+#include "headers/str.h"
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -15,7 +16,6 @@
 
 #define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
 cstr_o path_join_many(void *nil, ...) {
-  cstr_o joined_path = NULL;
   SB sb = {};
 
   va_list vl;
@@ -39,6 +39,8 @@ cstr_o path_join_many(void *nil, ...) {
   }
 
   va_end(vl);
+  cstr_o joined_path = cstr_from_sb(&sb);
+  da_free(&sb);
 
   return joined_path;
 }

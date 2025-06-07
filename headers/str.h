@@ -1,11 +1,16 @@
 #pragma once
 #include "types.h"
 
-int_da sv_index_char(SV sv, char c);
-int_da sv_index_chars(SV sv, char *chars);
+bool cmp_cstr_sv(cstr str, SV sv);
 
-int_da cstr_index_char(const cstr str, char c);
-int_da cstr_index_chars(const cstr str, char *chars);
+int_da sv_index_by_char(SV sv, char c);
+int_da sv_index_by_chars(SV sv, char *c);
+
+int_da cstr_index_by_char(const cstr str, char c);
+int_da cstr_index_by_chars(const cstr str, char *chars);
+
+SV_da sv_split_by_char(SV sv, char delim);
+SV_da sv_split_by_chars(SV sv, char *delim);
 
 SV_da cstr_split_by_char(const cstr str, char delim);
 SV_da cstr_split_by_chars(const cstr str, char *delim);

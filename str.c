@@ -8,86 +8,103 @@
 
 #include "headers/pulib.h"
 
-int_da sv_index_char(SV sv, char c) {
-  int_da indices = {};
-  SV temp = sv;
-  int index = sv_get_char_index(sv, c);
-  while (index != -1) {
-    da_append(&indices, temp.items + index - sv.items);
-    temp = sv_from(temp, index + 1);
-    index = sv_get_char_index(temp, c);
+bool cmp_cstr_sv(cstr str, SV sv) {
+  if (sv.length != strlen(str)) {
+    return false;
   }
-  return indices;
-}
-int_da sv_index_chars(SV sv, char *chars) {
-  int_da indices = {};
-  SV temp = sv;
-  int index = sv_get_first_char_index(sv, chars);
-  while (index != -1) {
-    da_append(&indices, temp.items + index - sv.items);
-    temp = sv_from(temp, index + 1);
-    index = sv_get_first_char_index(temp, chars);
-  }
-  return indices;
+  return strncmp(str, sv.items, sv.length) == 0;
 }
 
-int_da cstr_index_char(const cstr str, char c) {
-  int_da indices = {};
-  cstr temp = str;
-  char *index = strchr(str, c);
-  while (index != NULL) {
-    da_append(&indices, index - str);
-    temp = index + 1;
-    index = strchr(str, c);
-  }
+#define _sv_index_by(sv, needle, index_func)                                   \
+  int_da indices = {};                                                         \
+  SV temp = sv;                                                                \
+  int index = index_func(sv, needle);                                          \
+  while (index != -1) {                                                        \
+    da_append(&indices, temp.items + index - sv.items);                        \
+    temp = sv_from(temp, index + 1);                                           \
+    index = index_func(temp, needle);                                          \
+  }                                                                            \
   return indices;
+
+int_da sv_index_by_char(SV sv, char c) {
+  _sv_index_by(sv, c, sv_get_char_index);
 }
-int_da cstr_index_chars(const cstr str, char *chars) {
-  int_da indices = {};
-  cstr temp = str;
-  char *index = strpbrk(str, chars);
-  while (index != NULL) {
-    da_append(&indices, index - str);
-    temp = index + 1;
-    index = strpbrk(str, chars);
-  }
+
+int_da sv_index_by_chars(SV sv, char *c) {
+  _sv_index_by(sv, c, sv_get_first_char_index);
+}
+
+#define cstr_index_by(str, needle, index_func)                                 \
+  int_da indices = {};                                                         \
+  cstr temp = str;                                                             \
+  char *index = index_func(str, needle);                                       \
+  while (index != NULL) {                                                      \
+    da_append(&indices, index - str);                                          \
+    temp = index + 1;                                                          \
+    index = index_func(str, needle);                                           \
+  }                                                                            \
   return indices;
+
+int_da cstr_index_by_char(const cstr str, char c) {
+  cstr_index_by(str, c, strchr);
 }
+int_da cstr_index_by_chars(const cstr str, char *chars) {
+  cstr_index_by(str, chars, strpbrk);
+}
+
+#define sv_split_by(sv, needle, index_func)                                    \
+  SV_da splits = {};                                                           \
+  int_da indices = index_func(sv, needle);                                     \
+  for (int i = 0; i < indices.length; i++) {                                   \
+    SV split = {};                                                             \
+    if (i == 0) {                                                              \
+      split = (SV){.items = sv.items, .length = indices.items[i]};             \
+      da_append(&splits, split);                                               \
+    }                                                                          \
+    if (i == indices.length - 1) {                                             \
+      split = (SV){.items = sv.items + indices.items[i] + i + 1,               \
+                   .length = sv.length - indices.items[i] - 1};                \
+    } else {                                                                   \
+      split = (SV){.items = sv.items + indices.items[i] + i + 1,               \
+                   .length = indices.items[i + 1] - indices.items[i] - 1};     \
+    }                                                                          \
+    da_append(&splits, split);                                                 \
+  }                                                                            \
+  return splits;
+
+SV_da sv_split_by_char(SV sv, char delim) {
+  sv_split_by(sv, delim, sv_index_by_char);
+}
+SV_da sv_split_by_chars(SV sv, char *delim) {
+  sv_split_by(sv, delim, sv_index_by_chars);
+}
+
+#define cstr_split_by(str, needle, index_func)                                 \
+  SV_da splits = {};                                                           \
+  int_da indices = index_func(str, needle);                                    \
+  int str_length = strlen(str);                                                \
+  for (int i = 0; i < indices.length; i++) {                                   \
+    SV split = {};                                                             \
+    if (i == 0) {                                                              \
+      split = (SV){.items = str, .length = indices.items[i]};                  \
+      da_append(&splits, split);                                               \
+    }                                                                          \
+    if (i == indices.length - 1) {                                             \
+      split = (SV){.items = str + indices.items[i] + i + 1,                    \
+                   .length = str_length - indices.items[i] - 1};               \
+    } else {                                                                   \
+      split = (SV){.items = str + indices.items[i] + i + 1,                    \
+                   .length = indices.items[i + 1] - indices.items[i] - 1};     \
+    }                                                                          \
+    da_append(&splits, split);                                                 \
+  }                                                                            \
+  return splits;
 
 SV_da cstr_split_by_char(const cstr str, char delim) {
-  SV_da splits = {};
-  int_da indices = cstr_index_char(str, delim);
-  for (int i = 0; i < indices.length; i++) {
-    SV split = {};
-    if (i == indices.length - 1) {
-
-      split = (SV){.items = str + indices.items[i],
-                   .length = strlen(str) - indices.items[i]};
-    } else {
-      split = (SV){.items = str + indices.items[i],
-                   .length = indices.items[i + 1] - indices.items[i]};
-    }
-    da_append(&splits, split);
-  }
-  return splits;
+  cstr_split_by(str, delim, cstr_index_by_char);
 }
-
 SV_da cstr_split_by_chars(const cstr str, char *delim) {
-  SV_da splits = {};
-  int_da indices = cstr_index_chars(str, delim);
-  for (int i = 0; i < indices.length; i++) {
-    SV split = {};
-    if (i == indices.length - 1) {
-
-      split = (SV){.items = str + indices.items[i],
-                   .length = strlen(str) - indices.items[i]};
-    } else {
-      split = (SV){.items = str + indices.items[i],
-                   .length = indices.items[i + 1] - indices.items[i]};
-    }
-    da_append(&splits, split);
-  }
-  return splits;
+  cstr_split_by(str, delim, cstr_index_by_chars);
 }
 
 cstr_o cstr_from_sb(SB *sb) {
@@ -253,7 +270,7 @@ void sb_append_cstr(SB *sb, const cstr str) {
 void sb_append_sv(SB *sb, SV sv) { sb_append_buf(sb, sv.items, sv.length); }
 void sb_append_sb(SB *sb, SB sb2) { sb_append_buf(sb, sb2.items, sb2.length); }
 
-bool sv_from_file(SV *sv, const cstr path) {
+bool sv_from_file(SV_o *sv, const cstr path) {
   char result = true;
   FILE *file = fopen(path, "rb");
   int m = flength(file);
