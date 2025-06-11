@@ -2,10 +2,12 @@
 #include <stdalign.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "headers/pulib.h"
+#include "headers/cio.h"
+#include "headers/mem.h"
 
 void *malloc_copy(int size, void *src) {
   void *cpy = malloc(size);

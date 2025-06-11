@@ -1,3 +1,7 @@
+#include "headers/fio.h"
+#include "headers/da.h"
+#include "headers/str.h"
+#include "headers/types.h"
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -11,7 +15,6 @@
 // TODO: add windows support
 #endif
 
-#include "headers/pulib.h"
 
 #define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
 cstr_o path_join_many(void *nil, ...) {

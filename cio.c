@@ -1,5 +1,3 @@
-#include "headers/da.h"
-#include "headers/str.h"
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -8,6 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "headers/da.h"
+#include "headers/str.h"
+#include "headers/cio.h"
+
 #ifndef _WIN32
 #include <sys/wait.h>
 #include <unistd.h>
@@ -15,7 +17,6 @@
 // TODO: add windows support
 #endif
 
-#include "headers/pulib.h"
 
 void cmd_append_many(Cmd *cmd, ...) {
   va_list vl;
