@@ -1,4 +1,4 @@
-# pulib - C Framework(because I have a skill issue and do not want to maintain a single-header library)
+# .NECO - C Framework(because I have a skill issue and do not want to maintain a single-header library)
 ## **pulib** consists of various modules that include:
 <p>cio - console io functions, such as reading primitives, reading option out of provided, running a process, etc;</p>
 <p>da - simple header that adds dynamic array functionality for structs that have fields int length, int capacity, T* items;</p>
