@@ -13,27 +13,28 @@ typedef struct {
   int capacity;
 } ArenaAllocator;
 
+typedef char *cstr, *cstr_o;
+
 typedef struct {
   char *items;
   int length;
-} SV, SV_o;
+} vstr, vstr_o;
 
 typedef struct {
   char *items;
   int length;
   int capacity;
-} SB;
+} dstr, dstr_o;
 
-typedef char *cstr, *cstr_o;
 
 #define define_simple_da(T, name)                                              \
-typedef struct {                                                             \
-  T *items;                                                                  \
-  int length;                                                                \
-  int capacity;                                                              \
-} name
+  typedef struct {                                                             \
+    T *items;                                                                  \
+    int length;                                                                \
+    int capacity;                                                              \
+  } name
 
-define_simple_da(SV, SV_da);
+define_simple_da(vstr, vstr_da);
 
 define_simple_da(cstr, cstr_da);
 define_simple_da(short, short_da);
@@ -44,7 +45,6 @@ define_simple_da(long, long_da);
 define_simple_da(unsigned long, ulong_da);
 define_simple_da(float, float_da);
 define_simple_da(double, double_da);
-
 
 typedef cstr_da Cmd;
 

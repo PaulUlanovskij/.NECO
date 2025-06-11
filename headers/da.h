@@ -1,19 +1,18 @@
 #pragma once
 
-#ifndef DA_INIT_CAPACITY
-#define DA_INIT_CAPACITY 16
-#endif // DA_INIT_CAPACITY
-
 #define da_reserve(xs, size)                                                   \
   do {                                                                         \
-    while ((xs)->capacity < (size)) {                                          \
-      if ((xs)->capacity == 0)                                                 \
-        (xs)->capacity = DA_INIT_CAPACITY;                                     \
-      else                                                                     \
-        (xs)->capacity *= 2;                                                   \
+    if ((xs)->capacity < (size)) {                                             \
+      (xs)->capacity = size - 1;                                               \
+      (xs)->capacity |= (xs)->capacity >> 1;                                   \
+      (xs)->capacity |= (xs)->capacity >> 2;                                   \
+      (xs)->capacity |= (xs)->capacity >> 4;                                   \
+      (xs)->capacity |= (xs)->capacity >> 8;                                   \
+      (xs)->capacity |= (xs)->capacity >> 16;                                  \
+      (xs)->capacity++;                                                        \
+      (xs)->items = (typeof((xs)->items))realloc(                              \
+          (xs)->items, (xs)->capacity * sizeof(*(xs)->items));                 \
     }                                                                          \
-    (xs)->items = (typeof((xs)->items))realloc(                                \
-        (xs)->items, (xs)->capacity * sizeof(*(xs)->items));                   \
   } while (0)
 
 #define da_foreach(xs, name)                                                   \

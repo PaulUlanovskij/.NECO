@@ -1,4 +1,3 @@
-#include "headers/str.h"
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -16,36 +15,36 @@
 
 #define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
 cstr_o path_join_many(void *nil, ...) {
-  SB sb = {};
+  dstr ds = {};
 
   va_list vl;
   va_start(vl, nil);
   cstr arg = NULL;
   while ((arg = va_arg(vl, cstr)) != NULL) {
-    if (sb.length == 0) {
-      sb_append_cstr(&sb, arg);
+    if (ds.length == 0) {
+      dstr_append_cstr(&ds, arg);
     } else {
-      bool ends_with_slash = cstr_ends_with(sb.items, "/");
+      bool ends_with_slash = cstr_ends_with(ds.items, "/");
       bool starts_with_slash = cstr_starts_with(arg, "/");
       if (starts_with_slash && ends_with_slash) {
-        sb_append_cstr(&sb, arg + 1);
+        dstr_append_cstr(&ds, arg + 1);
       } else if (ends_with_slash == false && starts_with_slash == false) {
-        sb_append(&sb, '/');
-        sb_append_cstr(&sb, arg);
+        dstr_append(&ds, '/');
+        dstr_append_cstr(&ds, arg);
       } else {
-        sb_append_cstr(&sb, arg);
+        dstr_append_cstr(&ds, arg);
       }
     }
   }
 
   va_end(vl);
-  cstr_o joined_path = cstr_from_sb(&sb);
-  da_free(&sb);
+  cstr_o joined_path = dstr_to_cstr(ds);
+  da_free(&ds);
 
   return joined_path;
 }
 
-SV_da path_split(const cstr path) {
+vstr_da path_split(const cstr path) {
   // There might be more logic needed, not sure for now
   return cstr_split_by_char(path, '/');
 }
@@ -54,38 +53,38 @@ cstr path_greatest_common_path(const cstr path1, const cstr path2) {
   if (path1 == NULL || path2 == NULL) {
     return "";
   }
-  SV_da splits1 = path_split(path1);
-  SV_da splits2 = path_split(path2);
-  SV_da common = {};
+  vstr_da splits1 = path_split(path1);
+  vstr_da splits2 = path_split(path2);
+  vstr_da common = {};
   for (int i = 0; i < splits1.length && i < splits2.length; i++) {
-    SV sv1 = splits1.items[i];
-    SV sv2 = splits2.items[i];
+    vstr sv1 = splits1.items[i];
+    vstr sv2 = splits2.items[i];
     if (sv1.length != sv2.length) {
       break;
     }
-    if(strncmp(sv1.items, sv2.items, sv1.length)!=0){
+    if (strncmp(sv1.items, sv2.items, sv1.length) != 0) {
       break;
     }
     da_append(&common, sv1);
   }
   da_free(&splits1);
   da_free(&splits2);
-  SB sb = {};
+  dstr ds = {};
   for (int i = 0; i < common.length; i++) {
     if (i == 0) {
-      sb_append_sv(&sb, common.items[i]);
+      dstr_append_vstr(&ds, common.items[i]);
     } else {
-      sb_append(&sb, '/');
-      sb_append_sv(&sb, common.items[i]);
+      dstr_append(&ds, '/');
+      dstr_append_vstr(&ds, common.items[i]);
     }
   }
-  cstr common_path = cstr_from_sb(&sb);
+  cstr_o common_path = dstr_to_cstr(ds);
   da_free(&common);
-  da_free(&sb);
+  da_free(&ds);
   return common_path;
 }
 int path_depth(const cstr path) {
-  SV_da splits = path_split(path);
+  vstr_da splits = path_split(path);
   int depth = splits.length;
   da_free(&splits);
   return depth;
@@ -146,12 +145,12 @@ int flength(FILE *file) {
   return length;
 }
 
-void fwrite_sv(SV sv, FILE *file) {
+void fwrite_vstr(vstr sv, FILE *file) {
   fwrite(sv.items, sizeof(char), sv.length, file);
 }
 
-void fwrite_sb(SB sb, FILE *file) {
-  fwrite(sb.items, sizeof(char), sb.length, file);
+void fwrite_dstr(dstr ds, FILE *file) {
+  fwrite(ds.items, sizeof(char), ds.length, file);
 }
 
 void fwrite_cstr(char *str, FILE *file) {
@@ -159,14 +158,14 @@ void fwrite_cstr(char *str, FILE *file) {
 }
 
 cstr_o fread_cstr(FILE *file) {
-  SB line = {};
+  dstr line = {};
   char c = 0;
   do {
     if (fread_val(&c, file) == false)
       return NULL;
     da_append(&line, c);
   } while (c != '\0');
-  cstr result = cstr_from_sb(&line);
+  cstr_o result = dstr_to_cstr(line);
   da_free(&line);
   return result;
 }

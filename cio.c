@@ -1,4 +1,5 @@
 #include "headers/da.h"
+#include "headers/str.h"
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -21,7 +22,7 @@ void cmd_append_many(Cmd *cmd, ...) {
   va_start(vl, cmd);
   cstr arg = NULL;
   while ((arg = va_arg(vl, cstr)) != NULL) {
-    cstr_o quoted = cstr_quote_copy(arg);
+    cstr_o quoted = cstr_quote(arg);
     da_append(cmd, quoted);
   }
   va_end(vl);
@@ -31,10 +32,10 @@ void cmd_free(Cmd *cmd) {
   da_free(cmd);
 }
 void cmd_render(Cmd *cmd) {
-  SB sb = {};
+  dstr sb = {};
   for (int i = 0; i < cmd->length; i++) {
-    sb_append_cstr(&sb, cmd->items[i]);
-    sb_append(&sb, ' ');
+    dstr_append_cstr(&sb, cmd->items[i]);
+    dstr_append(&sb, ' ');
   }
   printf("%s\n", sb.items);
   da_free(&sb);
@@ -108,12 +109,12 @@ cstr_o cread_line(const cstr prompt, bool ensure_nonempty) {
   }
 
   int c = 0;
-  SB line = {};
+  dstr line = {};
   cstr_o res = NULL;
 
 START_OVER:
   while ((c = getchar()) != '\n' && c != EOF) {
-    sb_append(&line, c);
+    dstr_append(&line, c);
   }
 
   if (c == EOF || line.length == 0) {
@@ -137,7 +138,7 @@ START_OVER:
   }
 
 COPY_AND_RETURN:
-  res = cstr_from_sb(&line);
+  res = dstr_to_cstr(line);
   da_free(&line);
 
   return res;
