@@ -84,13 +84,13 @@ int pid_get_exitcode(pid_t cpid) {
 void log_write(enum LogLevel log_level, cstr file, int line, cstr msg) {
   switch (log_level) {
   case LogLevel_Info:
-    fprintf(stdout, "[INFO] %s:%d: %s\n", file, line, msg);
+    fprintf(stdout, "[INFO]      %s:%d: %s\n", file, line, msg);
     return;
   case LogLevel_Warning:
-    fprintf(stderr, "[WARNING] %s:%d: %s\n", file, line, msg);
+    fprintf(stderr, "[WARNING]   %s:%d: %s\n", file, line, msg);
     return;
   case LogLevel_Error:
-    fprintf(stderr, "[ERROR] %s:%d: %s\n", file, line, msg);
+    fprintf(stderr, "[ERROR]     %s:%d: %s\n", file, line, msg);
     return;
   case LogLevel_Nolog:
     return;

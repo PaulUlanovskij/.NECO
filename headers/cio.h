@@ -25,9 +25,9 @@ void log_write(enum LogLevel log_level, cstr file, int line, cstr msg);
 #define log_error(msg) log_write(LogLevel_Error, __FILE__, __LINE__, msg)
 
 #define panic(msg)                                                             \
-  fprintf(stderr, "[PANIC] %s:%d: %s\n", __FILE__, __LINE__, msg), abort();
+  fprintf(stderr, "[PANIC]     %s:%d: %s\n", __FILE__, __LINE__, msg), abort();
 #define todo(msg)                                                              \
-  fprintf(stdout, "[TODO] %s:%d: %s\n", __FILE__, __LINE__, msg), abort();
+  fprintf(stdout, "[TODO]      %s:%d: %s\n", __FILE__, __LINE__, msg), abort();
 
 void clear_stdin();
 

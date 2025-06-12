@@ -17,8 +17,8 @@ bool dir_open(cstr path, Dir *dir);
 bool fexists(const cstr path);
 int flength(FILE *file);
 
-void fwrite_sv(vstr sv, FILE *file);
-void fwrite_sb(dstr sb, FILE *file);
+void fwrite_vstr(vstr sv, FILE *file);
+void fwrite_dstr(dstr sb, FILE *file);
 void fwrite_cstr(const cstr str, FILE *file);
 
 cstr_o fread_cstr(FILE *file);

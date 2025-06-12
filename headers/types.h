@@ -57,7 +57,7 @@ enum LogLevel {
 
 typedef struct {
   ino_t ino;
-  cstr name;
+  char name[1024];
   unsigned short reclen;
   unsigned char type;
 } DirEntry;

@@ -1,7 +1,3 @@
-#include "headers/fio.h"
-#include "headers/da.h"
-#include "headers/str.h"
-#include "headers/types.h"
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -15,6 +11,10 @@
 // TODO: add windows support
 #endif
 
+#include "headers/da.h"
+#include "headers/fio.h"
+#include "headers/str.h"
+#include "headers/types.h"
 
 #define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
 cstr_o path_join_many(void *nil, ...) {
@@ -107,10 +107,11 @@ bool dir_open(cstr path, Dir *dir) {
     if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) {
       continue;
     }
-    DirEntry entry = {.name = dp->d_name,
+    DirEntry entry = {.name = {0},
                       .ino = dp->d_ino,
                       .reclen = dp->d_reclen,
                       .type = dp->d_type};
+    memcpy(entry.name, dp->d_name, strlen(dp->d_name));
     da_append(dir, entry);
   }
   closedir(handle);
