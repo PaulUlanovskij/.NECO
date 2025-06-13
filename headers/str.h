@@ -98,3 +98,22 @@ cstr_o cstr_sprintf(cstr format, ...);
 cstr_o cstr_vsprintf(cstr format, va_list va);
 cstr_o cstr_concat_many(void *nil, ...);
 #define cstr_concat(...) cstr_concat_many(NULL, __VA_ARGS__, NULL)
+
+vstr cstr_capture_block_by_char(cstr str, int offset, char inc, char dec);
+vstr cstr_capture_block_by_word(cstr str, int offset, const cstr inc, const cstr dec);
+vstr vstr_capture_block_by_char(vstr vs, int offset, char inc, char dec);
+vstr vstr_capture_block_by_word(vstr vs, int offset, const cstr inc, const cstr dec);
+vstr dstr_capture_block_by_char(dstr ds, int offset, char inc, char dec);
+vstr dstr_capture_block_by_word(dstr ds, int offset, const cstr inc, const cstr dec);
+
+int cstr_count_char(cstr str, char c);
+int cstr_count_word(cstr str, const cstr word);
+int vstr_count_char(vstr vs, char c);
+int vstr_count_word(vstr vs, const cstr word);
+int dstr_count_char(dstr ds, char c);
+int dstr_count_word(dstr ds, const cstr word);
+
+cstr_o cstr_trim(const cstr str);
+vstr cstr_trim_to_vstr(const cstr str);
+vstr vstr_trim(vstr vs);
+vstr dstr_trim_to_vstr(dstr ds);
