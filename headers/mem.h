@@ -1,6 +1,11 @@
 #pragma once
-#include "types.h"
 #include <stdint.h>
+
+typedef struct {
+  void *base_ptr;
+  void *alloc_ptr;
+  int capacity;
+} ArenaAllocator;
 
 void *malloc_copy(int size, void *src);
 

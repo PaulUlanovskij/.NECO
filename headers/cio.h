@@ -1,22 +1,13 @@
 #pragma once
-#include "types.h"
 
-#ifndef _WIN32
-#include <sys/types.h>
+#include "str.h"
 
-#else
-  //TODO: Add windows support
-#endif
-
-#define INVALID_PID -1
-#define INVALID_EXIT_CODE -1
-
-void cmd_free(Cmd *cmd);
-pid_t cmd_create_child(Cmd *cmd);
-int pid_get_exitcode(pid_t cpid);
-
-void cmd_append_many(Cmd *cmd, ...);
-#define cmd_append(cmd, ...) cmd_append_many(cmd, __VA_ARGS__, NULL)
+enum LogLevel {
+  LogLevel_Nolog,
+  LogLevel_Info,
+  LogLevel_Warning,
+  LogLevel_Error
+};
 
 void log_write(enum LogLevel log_level, cstr file, int line, cstr msg);
 

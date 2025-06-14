@@ -1,5 +1,5 @@
 #pragma once
-#include "types.h"
+#include "str.h"
 #include <stdio.h>
 
 #ifndef _WIN32
@@ -8,6 +8,20 @@
 #else
 //TODO: Add windows support
 #endif
+
+typedef struct {
+  ino_t ino;
+  char name[1024];
+  unsigned short reclen;
+  unsigned char type;
+} DirEntry;
+
+typedef struct {
+  cstr path;
+  DirEntry *items;
+  int capacity;
+  int length;
+} Dir;
 
 #define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
 cstr_o path_join_many(void *nil, ...);

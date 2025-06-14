@@ -336,8 +336,8 @@ int vstr_word_index(vstr vs, const cstr word) {
   int offset = 0;
   vstr temp = vs;
   temp.length -= (word_len - 1);
-  int index = vstr_char_index(temp, word[0]);
-  while (index != -1) {
+  int index = 0;
+  while ((index=vstr_char_index(temp, word[0])) != -1) {
     if (offset + index < vs.length - word_len) {
       if (strncmp(vs.items + index + offset, word, word_len) == 0) {
         return offset + index;
@@ -361,8 +361,8 @@ int vstr_first_word_index(vstr vs, const cstr const *words, int count) {
   }
 
   int offset = 0;
-  int index = vstr_first_char_index(vstr_slice(vs, offset, -1), heads);
-  while (index != -1) {
+  int index = 0;
+  while ((index = vstr_first_char_index(vstr_slice(vs, offset, -1), heads)) != -1) {
     for (int i = 0; i < count; i++) {
       if (offset + index < vs.length - lens.items[i]) {
         if (strncmp(vs.items + index + offset, words[i], lens.items[i]) == 0) {
@@ -371,7 +371,6 @@ int vstr_first_word_index(vstr vs, const cstr const *words, int count) {
       }
     }
     offset += index + 1;
-    index = vstr_first_char_index(vstr_slice(vs, offset, -1), heads);
   }
 
 defer:

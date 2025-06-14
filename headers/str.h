@@ -1,6 +1,23 @@
 #pragma once
-#include "types.h"
 #include <stdarg.h>
+#include "da.h"
+
+typedef char *cstr, *cstr_o;
+
+typedef struct {
+  char *items;
+  int length;
+} vstr, vstr_o;
+
+typedef struct {
+  char *items;
+  int length;
+  int capacity;
+} dstr, dstr_o;
+
+
+define_simple_da(vstr, vstr_da);
+define_simple_da(cstr, cstr_da);
 
 cstr cstr_offset(const cstr str, int offset);
 vstr vstr_offset(vstr vs, int offset);

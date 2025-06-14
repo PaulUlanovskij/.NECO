@@ -14,7 +14,6 @@
 #include "headers/da.h"
 #include "headers/fio.h"
 #include "headers/str.h"
-#include "headers/types.h"
 
 #define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
 cstr_o path_join_many(void *nil, ...) {

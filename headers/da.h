@@ -1,5 +1,21 @@
 #pragma once
 
+#define define_simple_da(T, name)                                              \
+  typedef struct {                                                             \
+    T *items;                                                                  \
+    int length;                                                                \
+    int capacity;                                                              \
+  } name
+
+define_simple_da(short, short_da);
+define_simple_da(unsigned short, ushort_da);
+define_simple_da(int, int_da);
+define_simple_da(unsigned int, uint_da);
+define_simple_da(long, long_da);
+define_simple_da(unsigned long, ulong_da);
+define_simple_da(float, float_da);
+define_simple_da(double, double_da);
+
 #define da_reserve(xs, size)                                                   \
   do {                                                                         \
     if ((xs)->capacity < (size)) {                                             \
