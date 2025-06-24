@@ -25,6 +25,8 @@ typedef struct {
   fd fd_err;
 } ProcessPromise;
 
+void free_process_promise(ProcessPromise promise);
+
 bool process_finished(ProcessPromise proc_promise);
 FinishedProcess process_getresult(ProcessPromise proc_promise);
 

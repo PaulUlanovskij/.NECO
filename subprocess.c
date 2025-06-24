@@ -1,5 +1,4 @@
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +15,11 @@
 // TODO: add windows support
 #endif
 
+void free_process_promise(ProcessPromise promise) {
+  close(promise.fd_in);
+  close(promise.fd_out);
+  close(promise.fd_err);
+}
 bool process_finished(ProcessPromise proc_promise) {
   if (proc_promise.pid <= 0) {
     return false;
@@ -39,10 +43,10 @@ FinishedProcess process_getresult(ProcessPromise proc_promise) {
   return (FinishedProcess){.returncode = -1};
 }
 
-FinishedProcess subprocess_run_x(Cmd *cmd, fd fd_in, fd fd_out, fd fd_err){
+FinishedProcess subprocess_run_x(Cmd *cmd, fd fd_in, fd fd_out, fd fd_err) {
   return process_getresult(subprocess_run_async_x(cmd, fd_in, fd_out, fd_err));
 }
-FinishedProcess subprocess_run(Cmd *cmd, cstr input, bool capture_output){
+FinishedProcess subprocess_run(Cmd *cmd, cstr input, bool capture_output) {
   return process_getresult(subprocess_run_async(cmd, input, capture_output));
 }
 
@@ -112,7 +116,7 @@ ProcessPromise subprocess_run_async(Cmd *cmd, cstr input, bool capture_output) {
       return (ProcessPromise){};
     }
   }
-  return subprocess_run_async_x(cmd, fd_in, fd_out, fd_err); 
+  return subprocess_run_async_x(cmd, fd_in, fd_out, fd_err);
 }
 
 void cmd_append_many(Cmd *cmd, ...) {
@@ -138,4 +142,3 @@ void cmd_render(Cmd *cmd) {
   printf("%s\n", sb.items);
   da_free(&sb);
 }
-

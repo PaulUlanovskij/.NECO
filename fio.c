@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,13 +27,14 @@ cstr_o path_join_many(void *nil, ...) {
     } else {
       bool ends_with_slash = cstr_ends_with(ds.items, "/");
       bool starts_with_slash = cstr_starts_with(arg, "/");
+      bool starts_with_current = cstr_starts_with(arg, "./");
       if (starts_with_slash && ends_with_slash) {
         dstr_append_cstr(&ds, arg + 1);
       } else if (ends_with_slash == false && starts_with_slash == false) {
         dstr_append(&ds, '/');
-        dstr_append_cstr(&ds, arg);
+        dstr_append_cstr(&ds, arg + (starts_with_current ? 2 : 0));
       } else {
-        dstr_append_cstr(&ds, arg);
+        dstr_append_cstr(&ds, arg + (starts_with_current ? 2 : 0));
       }
     }
   }
@@ -48,7 +48,7 @@ cstr_o path_join_many(void *nil, ...) {
 
 vstr_da path_split(const cstr path) {
   // There might be more logic needed, not sure for now
-  return cstr_split_by_char(path, '/');
+  return cstr_split_by_char(path, '/', true);
 }
 
 cstr path_greatest_common_path(const cstr path1, const cstr path2) {

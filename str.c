@@ -1,7 +1,6 @@
 #include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,33 +187,33 @@ bool dstr_from_file(dstr_o *ds, const cstr path) {
   return dstr_append_file(ds, path);
 }
 
-bool cstr_cmp_vstr(cstr str, vstr vs) {
+bool cstr_eql_vstr(cstr str, vstr vs) {
   if (vs.length != strlen(str)) {
     return false;
   }
   return strncmp(str, vs.items, vs.length) == 0;
 }
-bool cstr_cmp_dstr(cstr str, dstr ds) {
+bool cstr_eql_dstr(cstr str, dstr ds) {
   if (ds.length != strlen(str)) {
     return false;
   }
   return strncmp(str, ds.items, ds.length) == 0;
 }
-bool vstr_cmp_cstr(vstr vs, cstr str) { return cstr_cmp_vstr(str, vs); }
-bool vstr_cmp_dstr(vstr vs, dstr ds) {
+bool vstr_eql_cstr(vstr vs, cstr str) { return cstr_eql_vstr(str, vs); }
+bool vstr_eql_dstr(vstr vs, dstr ds) {
   if (ds.length != vs.length) {
     return false;
   }
   return memcmp(vs.items, ds.items, ds.length) == 0;
 }
-bool dstr_cmp_cstr(dstr ds, cstr str) { return cstr_cmp_dstr(str, ds); }
-bool dstr_cmp_vstr(dstr ds, vstr vs) { return vstr_cmp_dstr(vs, ds); }
+bool dstr_eql_cstr(dstr ds, cstr str) { return cstr_eql_dstr(str, ds); }
+bool dstr_eql_vstr(dstr ds, vstr vs) { return vstr_eql_dstr(vs, ds); }
 
 int cstr_char_index(cstr str, char c) {
   char *ch = strchr(str, c);
   return ch == NULL ? -1 : ch - str;
 }
-int cstr_first_char_index(cstr str, const char *chars) {
+int cstr_first_char_index(cstr str, int count, const char chars[count]) {
   char *ch = strpbrk(str, chars);
   return ch == NULL ? -1 : ch - str;
 }
@@ -222,7 +221,7 @@ int cstr_word_index(cstr str, const cstr word) {
   char *ch = strstr(str, word);
   return ch == NULL ? -1 : ch - str;
 }
-int cstr_first_word_index(cstr str, const cstr const *words, int count) {
+int cstr_first_word_index(cstr str, int count, const cstr const words[count]) {
   int result = -1;
   cstr_o heads = malloc(count + 1);
   int_da lens = {};
@@ -234,7 +233,7 @@ int cstr_first_word_index(cstr str, const cstr const *words, int count) {
   }
 
   int offset = 0;
-  int index = cstr_first_char_index(str + offset, heads);
+  int index = first_char_index(str + offset, count, heads);
   while (index != -1) {
     for (int i = 0; i < count; i++) {
       if (offset + index < len - lens.items[i]) {
@@ -244,7 +243,7 @@ int cstr_first_word_index(cstr str, const cstr const *words, int count) {
       }
     }
     offset += index + 1;
-    index = cstr_first_char_index(str + offset, heads);
+    index = first_char_index(str + offset, count, heads);
   }
 
 defer:
@@ -287,7 +286,7 @@ int vstr_char_index(vstr vs, char c) {
 #undef HASZERO
 }
 
-int vstr_first_char_index(vstr vs, const char *chars) {
+int vstr_first_char_index(vstr vs, int count, const char chars[count]) {
 #define ONES ((size_t)-1 / UCHAR_MAX)
 #define HIGHS (ONES * (UCHAR_MAX / 2 + 1))
 #define HASZERO(x) ((x) - ONES & ~(x) & HIGHS)
@@ -337,20 +336,20 @@ int vstr_word_index(vstr vs, const cstr word) {
   vstr temp = vs;
   temp.length -= (word_len - 1);
   int index = 0;
-  while ((index=vstr_char_index(temp, word[0])) != -1) {
+  while ((index = char_index(temp, word[0])) != -1) {
     if (offset + index < vs.length - word_len) {
       if (strncmp(vs.items + index + offset, word, word_len) == 0) {
         return offset + index;
       }
       offset += index + 1;
-      temp = vstr_slice(temp, index + 1, -1);
+      temp = slice(temp, index + 1, -1);
     } else {
       break;
     }
   }
   return -1;
 }
-int vstr_first_word_index(vstr vs, const cstr const *words, int count) {
+int vstr_first_word_index(vstr vs, int count, const cstr const words[count]) {
   int result = -1;
   cstr_o heads = malloc(count + 1);
   int_da lens = {};
@@ -362,7 +361,8 @@ int vstr_first_word_index(vstr vs, const cstr const *words, int count) {
 
   int offset = 0;
   int index = 0;
-  while ((index = vstr_first_char_index(vstr_slice(vs, offset, -1), heads)) != -1) {
+  while ((index = first_char_index(slice(vs, offset, -1), count, heads)) !=
+         -1) {
     for (int i = 0; i < count; i++) {
       if (offset + index < vs.length - lens.items[i]) {
         if (strncmp(vs.items + index + offset, words[i], lens.items[i]) == 0) {
@@ -380,19 +380,19 @@ defer:
 }
 
 int dstr_char_index(dstr ds, char c) {
-  return ds.length == 0 ? -1 : cstr_char_index(ds.items, c);
+  return ds.length == 0 ? -1 : char_index(ds.items, c);
 }
-int dstr_first_char_index(dstr ds, const char *chars) {
-  return ds.length == 0 ? -1 : cstr_first_char_index(ds.items, chars);
+int dstr_first_char_index(dstr ds, int count, const char chars[count]) {
+  return ds.length == 0 ? -1 : first_char_index(ds.items, count, chars);
 }
 int dstr_word_index(dstr ds, const cstr word) {
-  return ds.length == 0 ? -1 : cstr_word_index(ds.items, word);
+  return ds.length == 0 ? -1 : word_index(ds.items, word);
 }
-int dstr_first_word_index(dstr ds, const cstr const *words, int count) {
-  return ds.length == 0 ? -1 : cstr_first_word_index(ds.items, words, count);
+int dstr_first_word_index(dstr ds, int count, const cstr const words[count]) {
+  return ds.length == 0 ? -1 : first_word_index(ds.items, count, words);
 }
 
-#define _index_by_char_chars_word(type, name, pattern, index_to_add,           \
+#define _index_by_char_word(type, name, pattern, index_to_add,           \
                                   temp_reassign, index_func)                   \
   int_da indices = {};                                                         \
   type temp = name;                                                            \
@@ -404,136 +404,158 @@ int dstr_first_word_index(dstr ds, const cstr const *words, int count) {
   }                                                                            \
   return indices;
 
-#define _index_by_words(type, name, words, count, index_to_add, temp_reassign, \
-                        index_func)                                            \
+#define _index_by_chars_words(type, name, count, words, index_to_add, temp_reassign, index_func) \
   int_da indices = {};                                                         \
   type temp = name;                                                            \
-  int index = index_func(name, words, count);                                  \
+  int index = index_func(name, count, words);                                  \
   while (index != -1) {                                                        \
     da_append(&indices, index_to_add);                                         \
     temp = temp_reassign;                                                      \
-    index = index_func(temp, words, count);                                    \
+    index = index_func(temp, count, words);                                    \
   }                                                                            \
   return indices;
 
 int_da cstr_index_char(const cstr str, char c) {
-  _index_by_char_chars_word(cstr, str, c, temp + index - str, temp + index + 1,
+  _index_by_char_word(cstr, str, c, temp + index - str, temp + index + 1,
                             cstr_char_index);
 }
-int_da cstr_index_chars(const cstr str, const char *chars) {
-  _index_by_char_chars_word(cstr, str, chars, temp + index - str,
+int_da cstr_index_chars(const cstr str, int count, const char chars[count]) {
+  _index_by_chars_words(cstr, str, count, chars, temp + index - str,
                             temp + index + 1, cstr_first_char_index);
 }
 int_da vstr_index_char(vstr vs, char c) {
-  _index_by_char_chars_word(vstr, vs, c, temp.items + index - vs.items,
-                            vstr_slice(temp, index + 1, -1), vstr_char_index);
+  _index_by_char_word(vstr, vs, c, temp.items + index - vs.items,
+                            slice(temp, index + 1, -1), vstr_char_index);
 }
-int_da vstr_index_chars(vstr vs, const char *chars) {
-  _index_by_char_chars_word(vstr, vs, chars, temp.items + index - vs.items,
-                            vstr_slice(temp, index + 1, -1),
+int_da vstr_index_chars(vstr vs, int count, const char chars[count]) {
+  _index_by_chars_words(vstr, vs, count, chars, temp.items + index - vs.items,
+                            slice(temp, index + 1, -1),
                             vstr_first_char_index);
 }
 int_da dstr_index_char(dstr ds, char c) {
-  return ds.length == 0 ? (int_da){} : cstr_index_char(ds.items, c);
+  return ds.length == 0 ? (int_da){} : index_char(ds.items, c);
 }
-int_da dstr_index_chars(dstr ds, const char *chars) {
-  return ds.length == 0 ? (int_da){} : cstr_index_chars(ds.items, chars);
+int_da dstr_index_chars(dstr ds, int count, const char chars[count]) {
+  return ds.length == 0 ? (int_da){} : index_chars(ds.items, count, chars);
 }
 int_da cstr_index_word(const cstr str, const cstr word) {
-  _index_by_char_chars_word(cstr, str, word, temp + index - str,
+  _index_by_char_word(cstr, str, word, temp + index - str,
                             temp + index + 1, cstr_word_index);
 }
-int_da cstr_index_words(const cstr str, const cstr const *words, int count) {
-  _index_by_words(cstr, str, words, count, temp + index - str, temp + index + 1,
+int_da cstr_index_words(const cstr str, int count, const cstr const words[count]) {
+  _index_by_chars_words(cstr, str, count, words, temp + index - str, temp + index + 1,
                   cstr_first_word_index);
 }
 int_da vstr_index_word(vstr vs, const cstr word) {
-  _index_by_char_chars_word(vstr, vs, word, temp.items + index - vs.items,
-                            vstr_slice(temp, index + 1, -1), vstr_word_index);
+  _index_by_char_word(vstr, vs, word, temp.items + index - vs.items,
+                            slice(temp, index + 1, -1), vstr_word_index);
 }
-int_da vstr_index_words(vstr vs, const cstr const *words, int count) {
-  _index_by_words(vstr, vs, words, count, temp.items + index - vs.items,
-                  vstr_slice(temp, index + 1, -1), vstr_first_word_index);
+int_da vstr_index_words(vstr vs, int count, const cstr const words[count]) {
+  _index_by_chars_words(vstr, vs, count, words, temp.items + index - vs.items,
+                  slice(temp, index + 1, -1), vstr_first_word_index);
 }
 int_da dstr_index_word(dstr ds, const cstr word) {
-  return ds.length == 0 ? (int_da){} : cstr_index_word(ds.items, word);
+  return ds.length == 0 ? (int_da){} : index_word(ds.items, word);
 }
-int_da dstr_index_words(dstr ds, const cstr const *words, int count) {
-  return ds.length == 0 ? (int_da){} : cstr_index_words(ds.items, words, count);
+int_da dstr_index_words(dstr ds, int count, const cstr const words[count]) {
+  return ds.length == 0 ? (int_da){} : index_words(ds.items, count, words);
 }
 
-#define _split_by_char_chars_word(type, name, pattern, index_func)             \
+#define _split_by_char_word(name, pattern, index_func, sso)              \
   vstr_da splits = {};                                                         \
   int_da indices = index_func(name, pattern);                                  \
   if (indices.length == 0) {                                                   \
+    da_append(&splits, slice(name, 0, -1));                                    \
     return splits;                                                             \
   }                                                                            \
-  da_append(&splits, type##_slice(name, 0, indices.items[0]));                 \
-  for (int i = 0; i < indices.length - 1; i++) {                               \
-    da_append(&splits, type##_slice(name, indices.items[i] + i + 1,            \
-                                    indices.items[i + 1]));                    \
+  vstr split = slice(name, 0, indices.items[0]);                               \
+  if(sso & SSO_TRIM_ENTRIES)                                                   \
+    split = trim(split);                                                       \
+  if ((split.length == 0 && (sso & SSO_REMOVE_EMPTY)) == false) {              \
+    da_append(&splits, split);                                                 \
   }                                                                            \
-  da_append(&splits,                                                           \
-            type##_slice(name,                                                 \
-                         indices.items[indices.length - 1] + indices.length,   \
-                         -1));                                                 \
+  for (int i = 0; i < indices.length - 1; i++) {                               \
+    split = slice(name, indices.items[i] + i + 1, indices.items[i + 1]);       \
+    if(sso & SSO_TRIM_ENTRIES)                                                 \
+      split = trim(split);                                                     \
+    if ((split.length == 0 && (sso & SSO_REMOVE_EMPTY)) == false) {            \
+      da_append(&splits, split);                                               \
+    }                                                                          \
+  }                                                                            \
+  split = slice(name, indices.items[indices.length - 1] + indices.length, -1); \
+  if(sso & SSO_TRIM_ENTRIES)                                                   \
+    split = trim(split);                                                       \
+  if ((split.length == 0 && (sso & SSO_REMOVE_EMPTY)) == false) {              \
+    da_append(&splits, split);                                                 \
+  }                                                                            \
   da_free(&indices);                                                           \
   return splits;
 
-#define _split_by_words(type, name, words, count, index_func)                  \
+#define _split_by_chars_words(name, words, count, index_func, sso)             \
   vstr_da splits = {};                                                         \
   int_da indices = index_func(name, words, count);                             \
   if (indices.length == 0) {                                                   \
+    da_append(&splits, slice(name, 0, -1));                                    \
     return splits;                                                             \
   }                                                                            \
-  da_append(&splits, type##_slice(name, 0, indices.items[0]));                 \
-  for (int i = 0; i < indices.length - 1; i++) {                               \
-    da_append(&splits, type##_slice(name, indices.items[i] + i + 1,            \
-                                    indices.items[i + 1]));                    \
+  vstr split = slice(name, 0, indices.items[0]);                               \
+  if(sso & SSO_TRIM_ENTRIES)                                                   \
+    split = trim(split);                                                       \
+  if ((split.length == 0 && (sso & SSO_REMOVE_EMPTY)) == false) {              \
+    da_append(&splits, split);                                                 \
   }                                                                            \
-  da_append(&splits,                                                           \
-            type##_slice(name,                                                 \
-                         indices.items[indices.length - 1] + indices.length,   \
-                         -1));                                                 \
+  for (int i = 0; i < indices.length - 1; i++) {                               \
+    split = slice(name, indices.items[i] + i + 1, indices.items[i + 1]);       \
+    if(sso & SSO_TRIM_ENTRIES)                                                 \
+      split = trim(split);                                                     \
+    if ((split.length == 0 && (sso & SSO_REMOVE_EMPTY)) == false) {            \
+      da_append(&splits, split);                                               \
+    }                                                                          \
+  }                                                                            \
+  split = slice(name, indices.items[indices.length - 1] + indices.length, -1); \
+  if(sso & SSO_TRIM_ENTRIES)                                                   \
+    split = trim(split);                                                       \
+  if ((split.length == 0 && (sso & SSO_REMOVE_EMPTY)) == false) {              \
+    da_append(&splits, split);                                                 \
+  }                                                                            \
   da_free(&indices);                                                           \
   return splits;
 
-vstr_da cstr_split_by_char(const cstr str, char c) {
-  _split_by_char_chars_word(cstr, str, c, cstr_index_char);
+vstr_da cstr_split_by_char(const cstr str, char c, StrSplitOptions sso) {
+  _split_by_char_word(str, c, index_char, sso);
 }
-vstr_da cstr_split_by_chars(const cstr str, const char *chars) {
-  _split_by_char_chars_word(cstr, str, chars, cstr_index_chars);
+vstr_da cstr_split_by_chars(const cstr str, int count, const char chars[count], StrSplitOptions sso) {
+  _split_by_chars_words(str, count, chars, index_chars, sso);
 }
-vstr_da vstr_split_by_char(vstr vs, char c) {
-  _split_by_char_chars_word(vstr, vs, c, vstr_index_char);
+vstr_da vstr_split_by_char(vstr vs, char c, StrSplitOptions sso) {
+  _split_by_char_word(vs, c, index_char, sso);
 }
-vstr_da vstr_split_by_chars(vstr vs, const char *chars) {
-  _split_by_char_chars_word(vstr, vs, chars, vstr_index_chars);
+vstr_da vstr_split_by_chars(vstr vs, int count, const char chars[count], StrSplitOptions sso) {
+  _split_by_chars_words(vs, count, chars, index_chars, sso);
 }
-vstr_da dstr_split_by_char(dstr ds, char c) {
-  _split_by_char_chars_word(dstr, ds, c, dstr_index_char);
+vstr_da dstr_split_by_char(dstr ds, char c, StrSplitOptions sso) {
+  return split_by_char(ds.items, c, sso);
 }
-vstr_da dstr_split_by_chars(dstr ds, const char *chars) {
-  _split_by_char_chars_word(dstr, ds, chars, dstr_index_chars);
+vstr_da dstr_split_by_chars(dstr ds, int count, const char chars[count], StrSplitOptions sso) {
+  return split_by_chars(ds.items, count, chars, sso);
 }
-vstr_da cstr_split_by_word(const cstr str, const cstr word) {
-  _split_by_char_chars_word(cstr, str, word, cstr_index_word);
+vstr_da cstr_split_by_word(const cstr str, const cstr word, StrSplitOptions sso) {
+  _split_by_char_word(str, word, index_word, sso);
 }
-vstr_da cstr_split_by_words(const cstr str, const cstr const *words,
-                            int count) {
-  _split_by_words(cstr, str, words, count, cstr_index_words);
+vstr_da cstr_split_by_words(const cstr str, int count, const cstr const words[count], StrSplitOptions sso) {
+  _split_by_chars_words(str, count, words, index_words, sso);
 }
-vstr_da vstr_split_by_word(vstr vs, const cstr word) {
-  _split_by_char_chars_word(vstr, vs, word, vstr_index_word);
+vstr_da vstr_split_by_word(vstr vs, const cstr word, StrSplitOptions sso) {
+  _split_by_char_word(vs, word, index_word, sso);
 }
-vstr_da vstr_split_by_words(vstr vs, const cstr const *words, int count) {
-  _split_by_words(vstr, vs, words, count, vstr_index_words);
+vstr_da vstr_split_by_words(vstr vs, int count, const cstr const words[count], StrSplitOptions sso) {
+  _split_by_chars_words(vs, count, words, index_words, sso);
 }
-vstr_da dstr_split_by_word(dstr ds, const cstr word) {
-  return cstr_split_by_word(ds.items, word);
+vstr_da dstr_split_by_word(dstr ds, const cstr word, StrSplitOptions sso) {
+  return split_by_word(ds.items, word, sso);
 }
-vstr_da dstr_split_by_words(dstr ds, const cstr const *words, int count) {
-  return cstr_split_by_words(ds.items, words, count);
+vstr_da dstr_split_by_words(dstr ds, int count, const cstr const words[count], StrSplitOptions sso) {
+  return split_by_words(ds.items, count, words, sso);
 }
 
 void dstr_reserve_append(dstr *ds, int capacity) {
@@ -562,8 +584,8 @@ cstr_o cstr_quote(cstr str) {
 
   int index = 0;
   dstr_append(&ds, '\"');
-  while ((index = cstr_first_char_index(str, "\\\"")) != -1) {
-    dstr_append_vstr(&ds, cstr_slice(str, 0, index));
+  while ((index = first_char_index(str, len("\\\""), "\\\"")) != -1) {
+    dstr_append_vstr(&ds, slice(str, 0, index));
     dstr_append(&ds, '\\');
     dstr_append(&ds, str[index]);
 
@@ -597,10 +619,10 @@ cstr_o cstr_vsprintf(cstr format, va_list va) {
   return res;
 }
 
-cstr_o cstr_concat_many(void *nil, ...) {
+cstr_o cstr_concat_many(...) {
   dstr ds = {};
   va_list vl;
-  va_start(vl, nil);
+  va_start(vl);
   cstr arg = NULL;
   while ((arg = va_arg(vl, cstr)) != NULL) {
     dstr_append_cstr(&ds, arg);
@@ -611,17 +633,17 @@ cstr_o cstr_concat_many(void *nil, ...) {
   return str;
 }
 
-vstr cstr_capture_block_by_char(cstr str, int offset, char inc, char dec) {
-  cstr data = cstr_offset(str, offset);
-  int index = cstr_char_index(data, inc);
+vstr cstr_capture_by_char(cstr str, int offset, char inc, char dec) {
+  cstr data = offset(str, offset);
+  int index = char_index(data, inc);
   if (index == -1) {
     return (vstr){};
   }
   int start_index = index;
-  data = cstr_offset(data, index + 1);
+  data = offset(data, index + 1);
   int balance = 1;
   while (balance > 0) {
-    index = cstr_first_char_index(data, (char[2]){inc, dec});
+    index = first_char_index(data, 2, ((char[2]){inc, dec}));
     if (index == -1) {
       return (vstr){};
     }
@@ -633,125 +655,122 @@ vstr cstr_capture_block_by_char(cstr str, int offset, char inc, char dec) {
     }
     data++;
   }
-  return cstr_slice(cstr_offset(str, offset + start_index), 0,
+  return slice(offset(str, offset + start_index), 0,
                     data - (str + offset + start_index));
 }
-vstr cstr_capture_block_by_word(cstr str, int offset, const cstr inc,
+vstr cstr_capture_by_word(cstr str, int offset, const cstr inc,
                                 const cstr dec) {
-  cstr data = cstr_offset(str, offset);
-  int index = cstr_word_index(data, inc);
+  cstr data = offset(str, offset);
+  int index = word_index(data, inc);
   if (index == -1) {
     return (vstr){};
   }
   int start_index = index;
-  data = cstr_offset(data, index + strlen(inc));
+  data = offset(data, index + strlen(inc));
   int balance = 1;
   while (balance > 0) {
-    index = cstr_first_word_index(data, (cstr[2]){inc, dec}, 2);
+    index = first_word_index(data, 2, ((cstr[2]){inc, dec}));
     if (index == -1) {
       return (vstr){};
     }
-    data = cstr_offset(data, index);
-    if (cstr_starts_with(data, dec)) {
+    data = offset(data, index);
+    if (starts_with(data, dec)) {
       balance--;
-      data = cstr_offset(data, strlen(dec));
+      data = offset(data, strlen(dec));
     } else {
       balance++;
-      data = cstr_offset(data, strlen(inc));
+      data = offset(data, strlen(inc));
     }
   }
-  return cstr_slice(cstr_offset(str, offset + start_index), 0,
+  return slice(offset(str, offset + start_index), 0,
                     data - (str + offset + start_index));
 }
-vstr vstr_capture_block_by_char(vstr vs, int offset, char inc, char dec) {
-  vstr data = vstr_offset(vs, offset);
-  int index = vstr_char_index(data, inc);
+vstr vstr_capture_by_char(vstr vs, int offset, char inc, char dec) {
+  vstr data = offset(vs, offset);
+  int index = char_index(data, inc);
   if (index == -1) {
     return (vstr){};
   }
   int start_index = index;
-  data = vstr_offset(data, index + 1);
+  data = offset(data, index + 1);
   int balance = 1;
   while (balance > 0) {
-    index = vstr_first_char_index(data, (char[2]){inc, dec});
+    index = first_char_index(data, 2, ((char[2]){inc, dec}));
     if (index == -1) {
       return (vstr){};
     }
-    data = vstr_offset(data, index);
+    data = offset(data, index);
     if (data.items[0] == dec) {
       balance--;
     } else {
       balance++;
     }
-    data = vstr_offset(data, 1);
+    data = offset(data, 1);
   }
-  return vstr_slice(vstr_offset(vs, offset + start_index), 0,
+  return slice(offset(vs, offset + start_index), 0,
                     data.items - (vs.items + offset + start_index));
 }
-vstr vstr_capture_block_by_word(vstr vs, int offset, const cstr inc,
+vstr vstr_capture_by_word(vstr vs, int offset, const cstr inc,
                                 const cstr dec) {
-  vstr data = vstr_offset(vs, offset);
-  int index = vstr_word_index(data, inc);
+  vstr data = offset(vs, offset);
+  int index = word_index(data, inc);
   if (index == -1) {
     return (vstr){};
   }
   int start_index = index;
-  data = vstr_offset(data, index + strlen(inc));
+  data = offset(data, index + strlen(inc));
   int balance = 1;
   while (balance > 0) {
-    index = vstr_first_word_index(data, (cstr[2]){inc, dec}, 2);
+    index = first_word_index(data, 2, ((cstr[2]){inc, dec}));
     if (index == -1) {
       return (vstr){};
     }
-    data = vstr_offset(data, index);
-    if (vstr_starts_with(data, dec)) {
+    data = offset(data, index);
+    if (starts_with(data, dec)) {
       balance--;
-      data = vstr_offset(data, strlen(dec));
+      data = offset(data, strlen(dec));
     } else {
       balance++;
-      data = vstr_offset(data, strlen(inc));
+      data = offset(data, strlen(inc));
     }
   }
-  return vstr_slice(vstr_offset(vs, offset + start_index), 0,
+  return slice(offset(vs, offset + start_index), 0,
                     data.items - (vs.items + offset + start_index));
 }
-vstr dstr_capture_block_by_char(dstr ds, int offset, char inc, char dec) {
+vstr dstr_capture_by_char(dstr ds, int offset, char inc, char dec) {
   return ds.items == 0 ? (vstr){}
-                       : cstr_capture_block_by_char(ds.items, offset, inc, dec);
+                       : capture_by_char(ds.items, offset, inc, dec);
 }
-vstr dstr_capture_block_by_word(dstr ds, int offset, const cstr inc,
+vstr dstr_capture_by_word(dstr ds, int offset, const cstr inc,
                                 const cstr dec) {
   return ds.items == 0 ? (vstr){}
-                       : cstr_capture_block_by_word(ds.items, offset, inc, dec);
+                       : capture_by_word(ds.items, offset, inc, dec);
 }
 
-#define _count_char_word(type, name, delim_type, delim)                        \
+#define _count_char_word(name, delim_type, delim)                        \
   int count = 0;                                                               \
   for (int index = 0;                                                          \
-       (index = type##_##delim_type##_index(name, delim)) != -1; count++) {    \
-    name = type##_offset(name, index + 1);                                     \
+       (index = delim_type##_index(name, delim)) != -1; count++) {    \
+    name = offset(name, index + 1);                                     \
   }                                                                            \
   return count;
 
-int cstr_count_char(cstr str, char c) { _count_char_word(cstr, str, char, c); }
+int cstr_count_char(cstr str, char c) { _count_char_word(str, char, c); }
 int cstr_count_word(cstr str, const cstr word) {
-  _count_char_word(cstr, str, word, word);
+  _count_char_word(str, word, word);
 }
-int vstr_count_char(vstr vs, char c) { _count_char_word(vstr, vs, char, c); }
+int vstr_count_char(vstr vs, char c) { _count_char_word(vs, char, c); }
 int vstr_count_word(vstr vs, const cstr word) {
-  _count_char_word(vstr, vs, word, word);
+  _count_char_word(vs, word, word);
 }
 int dstr_count_char(dstr ds, char c) {
-  return ds.length == 0 ? 0 : cstr_count_char(ds.items, c);
+  return ds.length == 0 ? 0 : count_char(ds.items, c);
 }
 int dstr_count_word(dstr ds, const cstr word) {
-  return ds.length == 0 ? 0 : cstr_count_word(ds.items, word);
+  return ds.length == 0 ? 0 : count_word(ds.items, word);
 }
 
-cstr_o cstr_trim(const cstr str) {
-  return vstr_to_cstr(cstr_trim_to_vstr(str));
-}
-vstr cstr_trim_to_vstr(const cstr str) {
+vstr cstr_trim(const cstr str) {
   int len = strlen(str);
   int start_index = 0;
   for (; start_index < len && isspace(str[start_index]); start_index++) {
@@ -762,7 +781,7 @@ vstr cstr_trim_to_vstr(const cstr str) {
   int end_index = len - 1;
   for (; isspace(str[end_index]); end_index--) {
   }
-  return cstr_slice(str, start_index, end_index + 1);
+  return slice(str, start_index, end_index + 1);
 }
 vstr vstr_trim(vstr vs) {
   int start_index = 0;
@@ -775,8 +794,8 @@ vstr vstr_trim(vstr vs) {
   int end_index = vs.length - 1;
   for (; isspace(vs.items[end_index]); end_index--) {
   }
-  return vstr_slice(vs, start_index, end_index + 1);
+  return slice(vs, start_index, end_index + 1);
 }
-vstr dstr_trim_to_vstr(dstr ds) {
-  return ds.length == 0 ? (vstr){} : cstr_trim_to_vstr(ds.items);
+vstr dstr_trim(dstr ds) {
+  return ds.length == 0 ? (vstr){} : cstr_trim(ds.items);
 }
