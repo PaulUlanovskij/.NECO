@@ -96,6 +96,9 @@ bool cstr_from_file(cstr_o *str, const cstr path);
 bool vstr_from_file(vstr_o *vs, const cstr path);
 bool dstr_from_file(dstr_o *ds, const cstr path);
 
+bool cstr_eql_cstr(cstr str1, cstr str2);
+bool vstr_eql_vstr(vstr vs1, vstr vs2);
+bool dstr_eql_dstr(dstr ds1, dstr ds2);
 bool cstr_eql_vstr(cstr str, vstr vs);
 bool cstr_eql_dstr(cstr str, dstr ds);
 bool vstr_eql_cstr(vstr vs, cstr str);
@@ -175,15 +178,16 @@ int_da cstr_index_words(const cstr str, int count, const cstr const words[static
 int_da vstr_index_words(vstr vs, int count, const cstr const words[static count]);
 int_da dstr_index_words(dstr ds, int count, const cstr const words[static count]);
 
+typedef enum StrSplitOptions:char{
+  SSO_NONE = 0, SSO_REMOVE_EMPTY, SSO_TRIM_ENTRIES
+}StrSplitOptions;
 #define split_by_char(x, c, sso) _Generic(x, \
   vstr:   vstr_split_by_char, \
   cstr:   cstr_split_by_char, \
   dstr:   dstr_split_by_char  \
 )(x, c, sso)
 
-typedef enum StrSplitOptions:char{
-  SSO_NONE = 0, SSO_REMOVE_EMPTY, SSO_TRIM_ENTRIES
-}StrSplitOptions;
+
 vstr_da cstr_split_by_char(const cstr str, char c, StrSplitOptions sso);
 vstr_da vstr_split_by_char(vstr vs, char c, StrSplitOptions sso);
 vstr_da dstr_split_by_char(dstr ds, char c, StrSplitOptions sso);
@@ -269,3 +273,21 @@ int dstr_count_word(dstr ds, const cstr word);
 vstr cstr_trim(const cstr str);
 vstr vstr_trim(vstr vs);
 vstr dstr_trim(dstr ds);
+
+#define is_int(x) _Generic(x, \
+  vstr:   vstr_is_int, \
+  cstr:   cstr_is_int, \
+  dstr:   dstr_is_int  \
+)(x)
+bool cstr_is_int(cstr str);
+bool vstr_is_int(vstr str);
+bool dstr_is_int(dstr ds);
+
+#define is_float(x) _Generic(x, \
+  vstr:   vstr_is_float, \
+  cstr:   cstr_is_float, \
+  dstr:   dstr_is_float  \
+)(x)
+bool cstr_is_float(cstr str);
+bool vstr_is_float(vstr str);
+bool dstr_is_float(dstr ds);

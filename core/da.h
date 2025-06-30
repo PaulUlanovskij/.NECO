@@ -31,9 +31,25 @@ define_simple_da(double, double_da);
     }                                                                          \
   } while (0)
 
+
+#define da_remove_at(xs, index)                                                \
+  (xs)->items[(index)] = (xs)->items[(xs)->length--]
+
+#define da_remove_at_ord(xs, iter, index)                                      \
+do{                                                                            \
+for(int iter = index; iter < (xs)->length-1; iter++)                           \
+  (xs)->items[(index)] = (xs)->items[iter+1];                                  \
+}while(0)
+
 #define da_foreach(xs, name)                                                   \
   for (typeof((xs)->items) name = (xs)->items;                                 \
        name < (xs)->items + (xs)->length; name++)
+
+#define da_for(xs, index, name)                                                \
+  for (int index = 0; index < (xs)->length; )   \
+       for(typeof((xs)->items) name = (xs)->items;\
+           index < (xs)->length;\
+           name++, index++)
 
 #define da_free(xs)                                                            \
   do {                                                                         \

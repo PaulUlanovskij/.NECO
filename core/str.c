@@ -6,11 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "headers/da.h"
-#include "headers/fio.h"
-#include "headers/helpers.h"
-#include "headers/mem.h"
-#include "headers/str.h"
+#include "da.h"
+#include "fio.h"
+#include "helpers.h"
+#include "mem.h"
+#include "str.h"
 
 cstr cstr_offset(const cstr str, int offset) { return str + offset; }
 vstr vstr_offset(vstr vs, int offset) {
@@ -146,23 +146,21 @@ void dstr_append_dstr(dstr *ds, dstr ds2) {
   dstr_append_buf(ds, ds2.items, ds2.length - 1);
 }
 bool dstr_append_file(dstr *ds, const cstr path) {
-  bool result = true;
   FILE *file = fopen(path, "rb");
+  defer(if(file) fclose(file));
+
   int m = flength(file);
   if (m < 0) {
-    defer_res(false);
+    return false;
   }
   dstr_reserve_append(ds, m);
   fread(ds->items + ds->length - 1, m, 1, file);
   if (ferror(file)) {
-    defer_res(false);
+    return false;
   }
   ds->length += m;
   ds->items[ds->length - 1] = '\0';
-
-defer:
-  fclose(file);
-  return result;
+  return true;
 }
 
 bool cstr_from_file(cstr_o *str, const cstr path) {
@@ -179,7 +177,8 @@ bool vstr_from_file(vstr_o *vs, const cstr path) {
   if (dstr_from_file(&ds, path) == false) {
     return false;
   }
-  *vs = dstr_to_vstr(ds);
+  vs->items = malloc_copy(ds.length-1, ds.items);
+  vs->length = ds.length-1;
   da_free(&ds);
   return true;
 }
@@ -187,24 +186,31 @@ bool dstr_from_file(dstr_o *ds, const cstr path) {
   return dstr_append_file(ds, path);
 }
 
-bool cstr_eql_vstr(cstr str, vstr vs) {
-  if (vs.length != strlen(str)) {
-    return false;
+bool streql(int len1, char mem1[static len1], int len2, char mem2[static len2]){
+  if(len1 != len2){
+    return false;  
   }
-  return strncmp(str, vs.items, vs.length) == 0;
+  for(;mem1 == mem2 && len1 > 0; len1--){}
+  return len1 == 0;
+}
+bool cstr_eql_cstr(cstr str1, cstr str2) {
+  return streql(strlen(str1), str1, strlen(str2), str2);
+}
+bool vstr_eql_vstr(vstr vs1, vstr vs2) {
+  return streql(vs1.length, vs1.items, vs2.length, vs2.items);
+}
+bool dstr_eql_dstr(dstr ds1, dstr ds2) {
+  return streql(ds1.length-1, ds1.items, ds2.length-1, ds2.items);
+}
+bool cstr_eql_vstr(cstr str, vstr vs) {
+  return streql(strlen(str), str, vs.length, vs.items);
 }
 bool cstr_eql_dstr(cstr str, dstr ds) {
-  if (ds.length != strlen(str)) {
-    return false;
-  }
-  return strncmp(str, ds.items, ds.length) == 0;
+  return streql(strlen(str), str, ds.length-1, ds.items);
 }
 bool vstr_eql_cstr(vstr vs, cstr str) { return cstr_eql_vstr(str, vs); }
 bool vstr_eql_dstr(vstr vs, dstr ds) {
-  if (ds.length != vs.length) {
-    return false;
-  }
-  return memcmp(vs.items, ds.items, ds.length) == 0;
+  return streql(vs.length, vs.items, ds.length-1, ds.items);
 }
 bool dstr_eql_cstr(dstr ds, cstr str) { return cstr_eql_dstr(str, ds); }
 bool dstr_eql_vstr(dstr ds, vstr vs) { return vstr_eql_dstr(vs, ds); }
@@ -469,7 +475,7 @@ int_da dstr_index_words(dstr ds, int count, const cstr const words[count]) {
     split = slice(name, 0 , -1);                                               \
     if(sso & SSO_TRIM_ENTRIES)                                                 \
       split = trim(split);                                                     \
-    if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {            \
+    if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {             \
       da_append(&splits, split);                                               \
     }                                                                          \
     return splits;                                                             \
@@ -477,21 +483,21 @@ int_da dstr_index_words(dstr ds, int count, const cstr const words[count]) {
   split = slice(name, 0, indices.items[0]);                                    \
   if(sso & SSO_TRIM_ENTRIES)                                                   \
     split = trim(split);                                                       \
-  if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {              \
+  if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {               \
     da_append(&splits, split);                                                 \
   }                                                                            \
   for (int i = 0; i < indices.length - 1; i++) {                               \
-    split = slice(name, indices.items[i] + 1, indices.items[i + 1]);       \
+    split = slice(name, indices.items[i] + 1, indices.items[i + 1]);           \
     if(sso & SSO_TRIM_ENTRIES)                                                 \
       split = trim(split);                                                     \
-    if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {            \
+    if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {             \
       da_append(&splits, split);                                               \
     }                                                                          \
   }                                                                            \
-  split = slice(name, indices.items[indices.length - 1] + 1, -1); \
+  split = slice(name, indices.items[indices.length - 1] + 1, -1);              \
   if(sso & SSO_TRIM_ENTRIES)                                                   \
     split = trim(split);                                                       \
-  if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {              \
+  if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {               \
     da_append(&splits, split);                                                 \
   }                                                                            \
   da_free(&indices);                                                           \
@@ -505,7 +511,7 @@ int_da dstr_index_words(dstr ds, int count, const cstr const words[count]) {
     split = slice(name, 0 , -1);                                               \
     if(sso & SSO_TRIM_ENTRIES)                                                 \
       split = trim(split);                                                     \
-    if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {            \
+    if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {             \
       da_append(&splits, split);                                               \
     }                                                                          \
     return splits;                                                             \
@@ -513,21 +519,21 @@ int_da dstr_index_words(dstr ds, int count, const cstr const words[count]) {
   split = slice(name, 0, indices.items[0]);                                    \
   if(sso & SSO_TRIM_ENTRIES)                                                   \
     split = trim(split);                                                       \
-  if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {              \
+  if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {               \
     da_append(&splits, split);                                                 \
   }                                                                            \
   for (int i = 0; i < indices.length - 1; i++) {                               \
-    split = slice(name, indices.items[i] + 1, indices.items[i + 1]);       \
+    split = slice(name, indices.items[i] + 1, indices.items[i + 1]);           \
     if(sso & SSO_TRIM_ENTRIES)                                                 \
       split = trim(split);                                                     \
-    if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {            \
+    if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {             \
       da_append(&splits, split);                                               \
     }                                                                          \
   }                                                                            \
-  split = slice(name, indices.items[indices.length - 1] + 1, -1); \
+  split = slice(name, indices.items[indices.length - 1] + 1, -1);              \
   if(sso & SSO_TRIM_ENTRIES)                                                   \
     split = trim(split);                                                       \
-  if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {              \
+  if ((split.length < 1 && (sso & SSO_REMOVE_EMPTY)) == false) {               \
     da_append(&splits, split);                                                 \
   }                                                                            \
   da_free(&indices);                                                           \

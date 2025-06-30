@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "headers/cio.h"
-#include "headers/da.h"
-#include "headers/str.h"
-#include "headers/subprocess.h"
+#include "cio.h"
+#include "da.h"
+#include "str.h"
+#include "subprocess.h"
 
 #ifndef _WIN32
 #include <sys/wait.h>

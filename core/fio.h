@@ -23,8 +23,8 @@ typedef struct {
   int length;
 } Dir;
 
-#define path_join(...) path_join_many(NULL, __VA_ARGS__, NULL)
-cstr_o path_join_many(void *nil, ...);
+#define path_join(...) path_join_many(__VA_ARGS__, NULL)
+cstr_o path_join_many(...);
 
 bool dir_open(cstr path, Dir *dir);
 

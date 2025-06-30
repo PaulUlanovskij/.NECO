@@ -5,10 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "headers/da.h"
-#include "headers/str.h"
-#include "headers/cio.h"
-
+#include "da.h"
+#include "str.h"
+#include "cio.h"
 
 void log_write(enum LogLevel log_level, cstr file, int line, cstr msg) {
   switch (log_level) {
