@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Age: 8450220
+Cache-Control: public, max-age=315360000
+Connection: Keep-Alive
+Content-Type: image/gif
+Content-Length: 5000
+Date: Thu, 01 Jan 1998 12:01:01 GMT
+Last-Modified: Sun, 01 Jan 1995 12:01:00 GMT
+Server: Apache
+
+<The binary data for a 5K GIF image is included in the message body>

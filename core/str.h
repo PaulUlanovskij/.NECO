@@ -96,6 +96,21 @@ bool cstr_from_file(cstr_o *str, const cstr path);
 bool vstr_from_file(vstr_o *vs, const cstr path);
 bool dstr_from_file(dstr_o *ds, const cstr path);
 
+#define eql(x, y) _Generic(x, \
+  cstr: _Generic(y,           \
+      vstr: cstr_eql_vstr,    \
+      cstr: cstr_eql_cstr,    \
+      dstr: cstr_eql_dstr),   \
+  vstr: _Generic(y,           \
+      vstr: vstr_eql_vstr,    \
+      cstr: vstr_eql_cstr,    \
+      dstr: vstr_eql_dstr),   \
+  dstr: _Generic(y,           \
+      vstr: dstr_eql_vstr,    \
+      cstr: dstr_eql_cstr,    \
+      dstr: dstr_eql_dstr)    \
+)(x, y)
+
 bool cstr_eql_cstr(cstr str1, cstr str2);
 bool vstr_eql_vstr(vstr vs1, vstr vs2);
 bool dstr_eql_dstr(dstr ds1, dstr ds2);

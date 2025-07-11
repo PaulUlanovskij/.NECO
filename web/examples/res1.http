@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK 
+Server: Apache
+Date: Thu, 01 Jan 1998 12:01:00 GMT
+Connection: Keep-Alive
+Keep-Alive: timeout=5, max=500
+Content-Encoding: gzip
+Content-Type: text/html; charset=UTF-8
+Last-Modified: Mon, 29 Dec 1997 12:15:00 GMT
+Transfer-Encoding: chunked
+
+<html>
+Welcome to the <img src=”/logo.gif”> example.re homepage!
+</html>

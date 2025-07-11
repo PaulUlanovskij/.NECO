@@ -13,6 +13,8 @@
 
 #define len(arr) (sizeof((arr)) / sizeof(*(arr)))
 
+#define try(expr) if((expr) == false) return false
+
 #define defer(code) _defer(code, __LINE__)
 #define _defer(code, line) __defer(code, line)
 #define __defer(code, line) \
