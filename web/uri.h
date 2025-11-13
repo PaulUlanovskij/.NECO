@@ -71,6 +71,8 @@ typedef struct{
 
 bool uri_valid_pct_encoded(vstr pct_encoded);
 bool uri_valid_unreserved(char c);
+char uri_parse_pct_encoded(vstr pct);
+cstr uri_decode(vstr str);
 bool uri_valid_reg_name(vstr reg);
 bool uri_valid_ipv4(vstr ip);
 bool uri_valid_ipv6(vstr ip);

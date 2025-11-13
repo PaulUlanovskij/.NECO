@@ -27,6 +27,30 @@ bool uri_valid_unreserved(char c){
   return isalpha(c) || isdigit(c) || 
          c == '-' || c == '.' || c == '_' || c == '~';
 }
+char uri_parse_pct_encoded(vstr pct){
+  char fst = pct.items[1]; 
+  char snd = pct.items[2]; 
+  char res = fst - (isdigit(fst) ? '0' : 'A');
+
+  res*=16;
+  res = snd - (isdigit(snd) ? '0' : 'A');
+  return res;
+}
+cstr uri_decode(vstr str){
+  dstr ds = {};
+  defer(da_free(&ds));
+
+  da_for(&str, i, c){
+    if(*c == '%'){
+      dstr_append(&ds, uri_parse_pct_encoded(slice(str, i, i+3)));
+      i+=3;
+    }else{
+      dstr_append(&ds, *c);
+    }
+  }
+  return to_cstr(ds);
+}
+
 #define uri_valid_pct_encoded_or(c, i, vstr, expr)                             \
 do{                                                                            \
   if((c) == '%'){                                                              \

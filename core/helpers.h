@@ -11,7 +11,7 @@
     goto errdefer;                                                             \
   } while (0)
 
-#define len(arr) (sizeof((arr)) / sizeof(*(arr)))
+#define len(x) (sizeof((x)) / sizeof(*(x)))                                        \
 
 #define try(expr) if((expr) == false) return false
 

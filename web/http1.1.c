@@ -72,13 +72,15 @@ bool http_valid_field_value(vstr field_value){
   try(isgraph(field_value.items[0]) || field_value.items[0] & 0x80);
   if(field_value.length == 1) return true;
 
-  bool valid = false;
-  for(int i = 1; i < field_value.length-1; i++){
-    char c = field_value.items[i];
-    try(c == ' ' || c == '\t' || isgraph(c) || c & 0x80);
-    valid = true;
+  if(field_value.length != 2){
+    bool valid = false;
+    for(int i = 1; i < field_value.length-1; i++){
+      char c = field_value.items[i];
+      try(c == ' ' || c == '\t' || isgraph(c) || c & 0x80);
+      valid = true;
+    }
+    try(valid);
   }
-  try(valid);
 
   try(isgraph(field_value.items[field_value.length-1]) || 
       field_value.items[field_value.length-1] & 0x80);
@@ -86,16 +88,17 @@ bool http_valid_field_value(vstr field_value){
   return true;
 }
 bool http_parse_field_line(vstr field_line, vstr* field_name, vstr* field_value){
-  vstr_da parts = split_by_char(field_line, ':', SSO_NONE);
-  defer(da_free(&parts));
+  int index = char_index(field_line, ':');
+  if(index == -1) return false;
 
-  if(parts.length < 2) return false;
+  vstr name = slice(field_line, 0, index);
+  vstr value = trim(slice(field_line, index+1, -1));
 
-  try(http_valid_field_name(parts.items[0]));
-  try(http_valid_field_value(trim(parts.items[1])));
+  try(http_valid_field_name(name));
+  try(http_valid_field_value(value));
 
-  if(field_name) *field_name = parts.items[0];
-  if(field_value) *field_value = trim(parts.items[1]);
+  if(field_name) *field_name = name;
+  if(field_value) *field_value = value;
 
   return true;
 }
@@ -206,7 +209,7 @@ bool http_parse(vstr raw_message, HTTPMessage *msg){
   int_da double_linebreaks = index_word(raw_message, "\r\n\r\n");
   defer(da_free(&double_linebreaks));
 
-  if(double_linebreaks.length != 1) return false;
+  if(double_linebreaks.length < 1) return false;
 
   vstr_da header_lines = split_by_word(slice(raw_message, 0, double_linebreaks.items[0]), "\r\n", SSO_NONE);
   defer(da_free(&header_lines));
@@ -223,10 +226,10 @@ bool http_parse(vstr raw_message, HTTPMessage *msg){
   }
 
   vstr_da field_lines = header_lines;
-  da_slice(field_lines, 1, -1);
+  da_slice(&field_lines, 1, -1);
 
-  http_parse_field_lines(field_lines, msg);
-  
+  try(http_parse_field_lines(field_lines, msg));
+
   vstr body = slice(raw_message, double_linebreaks.items[0] + 4, -1);
   if(msg) msg->body = body;
 }
