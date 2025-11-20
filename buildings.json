@@ -1,0 +1,34 @@
+{
+  "buildings": [
+    {
+      "id": "farm",
+      "name": "Ферма",
+      "market": "1",
+      "construction": {
+        "resources": {
+          "Строительные материалы": 100
+        },
+        "time_seasons": 2
+      },
+      "workers": {
+        "рабочие": 10
+      },
+      "consumption": {
+        "one_time": {
+          "земля": 1,
+          "инфраструктура": 1
+        },
+        "per_cycle": {
+          "вода": 10,
+          "удобрения": 5
+        }
+      },
+      "production": {
+        "main_product": {
+          "название": "мясо",
+          "количество": 100
+        }
+      }
+    }
+  ]
+}
